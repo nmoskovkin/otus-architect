@@ -1,0 +1,41 @@
+{{ template "header.html" . }}
+<form action="/register" method="post" enctype="application/x-www-form-urlencoded">
+    <div>
+        {{range $element := .Errors}} <div class="error">{{$element}}</div> {{end}}
+    </div>
+    <div>
+        <label class="label-block" for="first_name">Имя</label>
+        <input type="text" id="first_name" name="first_name" value="{{.FirstName}}">
+    </div>
+    <div>
+        <label class="label-block" for="last_name">Фамилия</label>
+        <input type="text" id="last_name" name="last_name" value="{{.LastName}}">
+    </div>
+    <div>
+        <label class="label-block" for="age">Возраст</label>
+        <input type="text" id="age" name="age" value="{{.Age}}">
+    </div>
+    <div>
+        <label class="label-block">Пол</label>
+        <input type="radio" id="male" name="gender" value="male" {{if  eq .Gender "male"}}checked{{end}}>
+        <label class="label-inline" for="male" >Муж. </label><br>
+        <input type="radio" id="female" name="gender" value="female" {{if eq .Gender  "female"}}checked{{end}}>
+        <label class="label-inline" for="female">Жен. </label><br>
+        <input type="radio" id="other" name="gender" value="other" {{if eq .Gender  "other"}}checked{{end}}>
+        <label class="label-inline" for="other">Другое</label>
+    </div>
+    <div>
+        <label class="label-block" for="interests">Интересы</label>
+        <textarea id="interests" name="interests">{{.Interests}}</textarea>
+    </div>
+    <div>
+        <label class="label-block" for="city">Город</label>
+        <input type="text" id="city" name="city" value="{{.City}}">
+    </div>
+    <div>
+        <button class="t10">
+            Register
+        </button>
+    </div>
+</form>
+{{ template "footer.html" . }}
