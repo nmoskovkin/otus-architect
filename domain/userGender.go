@@ -3,7 +3,7 @@ package domain
 type UserGender int
 
 const (
-	Male UserGender = iota
+	Male UserGender = iota + 1
 	Female
 	Other
 )

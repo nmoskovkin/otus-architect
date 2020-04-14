@@ -31,14 +31,20 @@ func CreateRegisterPostHandler(templ *template.Template, db *sql.DB) ErrorReturn
 			return NewHTTPError(err, 500, "")
 		}
 		dto := domain.RegisterUserDto{
-			FirstName: r.Form.Get("first_name"),
-			LastName:  r.Form.Get("last_name"),
-			Age:       r.Form.Get("age"),
-			Gender:    r.Form.Get("gender"),
-			Interests: r.Form.Get("interests"),
-			City:      r.Form.Get("city"),
+			FirstName:            r.Form.Get("first_name"),
+			LastName:             r.Form.Get("last_name"),
+			Age:                  r.Form.Get("age"),
+			Gender:               r.Form.Get("gender"),
+			Interests:            r.Form.Get("interests"),
+			City:                 r.Form.Get("city"),
+			Password:             r.Form.Get("password"),
+			PasswordConfirmation: r.Form.Get("password-confirmation"),
 		}
 		validationResult, err := createRegisterService(&dto)
+		if err != nil {
+			return NewHTTPError(err, 500, "")
+		}
+
 		if validationResult != nil {
 			err := templ.ExecuteTemplate(w, "register.html", templates.RegisterData{
 				PageTitle: "Register New User",
