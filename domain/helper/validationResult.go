@@ -1,4 +1,4 @@
-package service
+package helper
 
 type ValidationResult struct {
 	result map[string][]string

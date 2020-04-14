@@ -1,6 +1,7 @@
 package main
 
 import (
+	"architectSocial/app"
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-migrate/migrate/v4"
@@ -16,8 +17,8 @@ func main() {
 	config := createConfigFromEnvVars()
 	db := establishDbConnection(config.MysqlDSN)
 	defer db.Close()
-	migrateDatabase(db, "migrations")
-	templ := registerHtmlTemplates("templates")
+	migrateDatabase(db, "app/migrations")
+	templ := registerHtmlTemplates("app/templates")
 	sessionStore := initSessionStore(config.SessionKey)
 	startWebServer(templ, config.Port, sessionStore, db)
 
@@ -134,7 +135,7 @@ func initSessionStore(sessionKey string) *sessions.CookieStore {
 }
 
 func startWebServer(tmpl *template.Template, port uint16, store sessions.Store, db *sql.DB) {
-	err := NewWebServer(tmpl, port, store, db)
+	err := app.NewWebServer(tmpl, port, store, db)
 
 	if err != nil {
 		panic(err.Error())

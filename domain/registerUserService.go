@@ -1,7 +1,7 @@
-package service
+package domain
 
 import (
-	"architectSocial/model"
+	"architectSocial/domain/helper"
 	"strconv"
 )
 
@@ -14,10 +14,10 @@ type RegisterUserDto struct {
 	City      string
 }
 
-type RegisterUserService func(dto *RegisterUserDto) (*ValidationResult, error)
+type RegisterUserService func(dto *RegisterUserDto) (*helper.ValidationResult, error)
 
-func registerUserValidateDto(dto *RegisterUserDto) *ValidationResult {
-	result := NewValidationResult()
+func registerUserValidateDto(dto *RegisterUserDto) *helper.ValidationResult {
+	result := helper.NewValidationResult()
 
 	if dto.FirstName == "" {
 		result.AddError("firstName", "First name is empty")
@@ -29,20 +29,20 @@ func registerUserValidateDto(dto *RegisterUserDto) *ValidationResult {
 	return result
 }
 
-func CreateRegisterUserService(userModel model.UserModel) RegisterUserService {
-	return func(dto *RegisterUserDto) (*ValidationResult, error) {
+func CreateRegisterUserService(userModel UserRepository) RegisterUserService {
+	return func(dto *RegisterUserDto) (*helper.ValidationResult, error) {
 		validationResult := registerUserValidateDto(dto)
 		if !validationResult.IsValid() {
 			return validationResult, nil
 		}
 		ageNum, _ := strconv.Atoi(dto.Age)
-		var gender model.UserGender
+		var gender UserGender
 		if dto.Gender == "male" {
-			gender = model.Male
+			gender = Male
 		} else if dto.Gender == "female" {
-			gender = model.Female
+			gender = Female
 		} else {
-			gender = model.Other
+			gender = Other
 		}
 		userModel.CreateUser(dto.FirstName, dto.LastName, uint8(ageNum), gender, dto.Interests, dto.City)
 
