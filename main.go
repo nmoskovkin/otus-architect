@@ -1,15 +1,18 @@
 package main
 
 import (
-	"architectSocial/app"
+	"architectSocial/app/controller"
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/joho/godotenv"
 	"html/template"
+	"net/http"
+	"strconv"
 )
 
 func main() {
@@ -19,8 +22,9 @@ func main() {
 	defer db.Close()
 	migrateDatabase(db, "app/migrations")
 	templ := registerHtmlTemplates("app/templates")
-	sessionStore := initSessionStore(config.SessionKey)
-	startWebServer(templ, config.Port, sessionStore, db)
+	//sessionStore := initSessionStore(config.SessionKey)
+	router := initRouter(templ, db)
+	startWebServer(router, config.Port)
 
 	//fmt.Println(err)
 	//fmt.Println(config)
@@ -134,9 +138,25 @@ func initSessionStore(sessionKey string) *sessions.CookieStore {
 	return sessions.NewCookieStore([]byte(sessionKey))
 }
 
-func startWebServer(tmpl *template.Template, port uint16, store sessions.Store, db *sql.DB) {
-	err := app.NewWebServer(tmpl, port, store, db)
+func initRouter(templ *template.Template, db *sql.DB) *mux.Router {
+	handlerFactory := controller.NewHandlerFactory(templ)
 
+	router := mux.NewRouter()
+	router.HandleFunc(
+		"/register",
+		handlerFactory.CreateHandler(controller.CreateRegisterGetHandler(templ)).ServeHTTP,
+	).Methods(http.MethodGet)
+
+	router.HandleFunc(
+		"/register",
+		handlerFactory.CreateHandler(controller.CreateRegisterPostHandler(templ, db)).ServeHTTP,
+	).Methods(http.MethodPost)
+
+	return router
+}
+
+func startWebServer(router *mux.Router, port uint16) {
+	err := http.ListenAndServe(":"+strconv.Itoa(int(port)), router)
 	if err != nil {
 		panic(err.Error())
 	}

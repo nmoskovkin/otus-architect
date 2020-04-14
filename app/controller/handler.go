@@ -13,10 +13,14 @@ type Handler struct {
 	errorHandler ErrorHandlerFunc
 }
 
+type HandlerFactory struct {
+	errorHandler ErrorHandlerFunc
+}
+
 func NewHandler(rootHandler ErrorReturningHandlerFunc, templ *template.Template) *Handler {
 	return &Handler{
 		rootHandler:  rootHandler,
-		errorHandler: CreateErrorHandler(templ),
+		errorHandler: CreateErrorHandlerFunc(templ),
 	}
 }
 
@@ -32,4 +36,15 @@ func (handler *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Requ
 		return
 	}
 	handler.errorHandler(writer, request, clientError)
+}
+
+func NewHandlerFactory(templ *template.Template) *HandlerFactory {
+	return &HandlerFactory{errorHandler: CreateErrorHandlerFunc(templ)}
+}
+
+func (handlerFactory *HandlerFactory) CreateHandler(rootHandler ErrorReturningHandlerFunc) *Handler {
+	return &Handler{
+		rootHandler:  rootHandler,
+		errorHandler: handlerFactory.errorHandler,
+	}
 }

@@ -31,7 +31,7 @@ func NewHTTPError(err error, status int, detail string) error {
 	}
 }
 
-func CreateErrorHandler(templ *template.Template) ErrorHandlerFunc {
+func CreateErrorHandlerFunc(templ *template.Template) ErrorHandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request, clientError ClientError) {
 		_ = templ.ExecuteTemplate(writer, "error.html", templates.ErrorData{
 			PageTitle: "Error",
