@@ -32,8 +32,8 @@ func CreateMysqlUserRepository(db *sql.DB) *MysqlUserRepository {
 	return &MysqlUserRepository{db: db}
 }
 
-func (model *MysqlUserRepository) Create(id uuid.UUID, firstName string, lastName string, age uint8, gender domain.UserGender, interests string, city string, password string) error {
-	stmt, err := model.db.Prepare("INSERT INTO users (id, first_name, last_name, age,  gender, interests, city, salt, password) VALUES (?,?,?,?,?,?,?,?,?)")
+func (repository *MysqlUserRepository) Create(id uuid.UUID, firstName string, lastName string, age uint8, gender domain.UserGender, interests string, city string, password string) error {
+	stmt, err := repository.db.Prepare("INSERT INTO users (id, first_name, last_name, age,  gender, interests, city, salt, password) VALUES (?,?,?,?,?,?,?,?,?)")
 
 	if err != nil {
 		return errors.New("failed to create user, error: " + err.Error())
@@ -53,8 +53,8 @@ func (model *MysqlUserRepository) Create(id uuid.UUID, firstName string, lastNam
 	return nil
 }
 
-func (model *MysqlUserRepository) ExistsWithIdAndPassword(id uuid.UUID, password string) (bool, error) {
-	stmt, err := model.db.Prepare("SELECT password,salt FROM users WHERE id=?")
+func (repository *MysqlUserRepository) ExistsWithIdAndPassword(id uuid.UUID, password string) (bool, error) {
+	stmt, err := repository.db.Prepare("SELECT password,salt FROM users WHERE id=?")
 	if err != nil {
 		return false, fmt.Errorf("failed to fetch user, error: %s", err.Error())
 	}
@@ -81,7 +81,7 @@ func (model *MysqlUserRepository) ExistsWithIdAndPassword(id uuid.UUID, password
 	return true, nil
 }
 
-func (model *MysqlUserRepository) GetAll(filter GetAllFilter) ([]FindAllItem, error) {
+func (repository *MysqlUserRepository) GetAll(filter GetAllFilter) ([]FindAllItem, error) {
 	wherePart := ""
 	args := []interface{}{}
 	if filter.Id != "" {
@@ -89,7 +89,7 @@ func (model *MysqlUserRepository) GetAll(filter GetAllFilter) ([]FindAllItem, er
 		args = append(args, filter.Id)
 		wherePart = "WHERE id=?"
 	}
-	stmt, err := model.db.Prepare("SELECT id,first_name,last_name,age,interests,city,gender FROM users " + wherePart)
+	stmt, err := repository.db.Prepare("SELECT id,first_name,last_name,age,interests,city,gender FROM users " + wherePart)
 	if err != nil {
 		return []FindAllItem{}, errors.New("failed to fetch user, error: " + err.Error())
 	}

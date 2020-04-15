@@ -129,6 +129,11 @@ func initRouter(templ *template.Template, db *sql.DB, sessionWrapper helpers.Ses
 		handlerFactory.CreateHandler(controller.CreateDetailsGetHandler(templ, db, sessionWrapper)).ServeHTTP,
 	).Methods(http.MethodGet)
 
+	router.HandleFunc(
+		"/details",
+		handlerFactory.CreateHandler(controller.CreateDetailsPostHandler(templ, db, sessionWrapper)).ServeHTTP,
+	).Methods(http.MethodPost)
+
 	return router
 }
 

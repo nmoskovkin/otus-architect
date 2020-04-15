@@ -60,6 +60,7 @@ func CreateAuthPostHandler(templ *template.Template, db *sql.DB, sessionWrapper 
 				return NewHTTPError(err, 500, "")
 			}
 
+			http.Redirect(w, r, "/list", 301)
 			return nil
 		}
 
@@ -72,7 +73,6 @@ func CreateAuthPostHandler(templ *template.Template, db *sql.DB, sessionWrapper 
 			return NewHTTPError(err, 500, "")
 		}
 
-		http.Redirect(w, r, "/list", 301)
 		return nil
 	}
 }
