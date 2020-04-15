@@ -43,13 +43,13 @@ func registerUserValidateDto(dto *RegisterUserDto) *helper.ValidationResult {
 		result.AddError("city", "City is empty")
 	}
 	if dto.Password == "" {
-		result.AddError("password", "Password is empty")
+		result.AddError("Password", "Password is empty")
 	}
 	if dto.PasswordConfirmation == "" {
-		result.AddError("passwordConfirm", "Please confirm your password")
+		result.AddError("passwordConfirm", "Please confirm your Password")
 	}
 	if dto.Password != "" && dto.PasswordConfirmation != "" && dto.Password != dto.PasswordConfirmation {
-		result.AddError("password", "The passwords don't match")
+		result.AddError("Password", "The passwords don't match")
 	}
 	if dto.Age != "" {
 		num, err := strconv.Atoi(dto.Age)
@@ -84,7 +84,7 @@ func CreateRegisterUserService(userModel UserRepository) RegisterUserService {
 			return nil, "", errors.New("failed to create user, error:" + err.Error())
 		}
 
-		err = userModel.CreateUser(id, dto.FirstName, dto.LastName, uint8(ageNum), gender, dto.Interests, dto.City, dto.Password)
+		err = userModel.Create(id, dto.FirstName, dto.LastName, uint8(ageNum), gender, dto.Interests, dto.City, dto.Password)
 		if err != nil {
 			return nil, "", errors.New("failed to create user, error:" + err.Error())
 		}

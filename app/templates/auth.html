@@ -4,8 +4,8 @@
         {{range $element := .Errors}} <div class="error">{{$element}}</div> {{end}}
     </div>
     <div>
-        <label class="label-block" for="id">Id</label>
-        <input type="text" id="id" name="id" value="{{.Id}}">
+        <label class="label-block" for="login">Login (UUID)</label>
+        <input type="text" id="login" name="login" value="{{.Login}}">
     </div>
     <div>
         <label class="label-block" for="password">Пароль</label>

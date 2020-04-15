@@ -26,10 +26,10 @@ func CreateRegisterGetHandler(templ *template.Template) ErrorReturningHandlerFun
 
 func CreateRegisterPostHandler(templ *template.Template, db *sql.DB, sessionWrapper helpers.SessionWrapper) ErrorReturningHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		createRegisterService := domain.CreateRegisterUserService(repository.CreateMysqlUserRepository(db))
+		registerService := domain.CreateRegisterUserService(repository.CreateMysqlUserRepository(db))
 		err := r.ParseForm()
 		if err != nil {
-			return NewHTTPError(err, 500, "")
+			return NewHTTPError(err, 400, "")
 		}
 		dto := domain.RegisterUserDto{
 			FirstName:            r.Form.Get("first_name"),
@@ -41,9 +41,9 @@ func CreateRegisterPostHandler(templ *template.Template, db *sql.DB, sessionWrap
 			Password:             r.Form.Get("password"),
 			PasswordConfirmation: r.Form.Get("password-confirmation"),
 		}
-		validationResult, userId, err := createRegisterService(&dto)
+		validationResult, userId, err := registerService(&dto)
 		if err != nil {
-			return NewHTTPError(err, 500, "")
+			return NewHTTPError(err, 400, "")
 		}
 
 		if validationResult != nil {
@@ -67,6 +67,7 @@ func CreateRegisterPostHandler(templ *template.Template, db *sql.DB, sessionWrap
 		if err != nil {
 			return NewHTTPError(err, 500, "")
 		}
+		http.Redirect(w, r, "/auth", 301)
 
 		return nil
 	}

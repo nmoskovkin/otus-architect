@@ -5,6 +5,7 @@ import (
 	"architectSocial/domain"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -13,11 +14,21 @@ type MysqlUserRepository struct {
 	db *sql.DB
 }
 
+type FindAllItem struct {
+	Id        string
+	FirstName string
+	LastName  string
+	Age       uint8
+	Interests string
+	City      string
+	Gender    uint8
+}
+
 func CreateMysqlUserRepository(db *sql.DB) *MysqlUserRepository {
 	return &MysqlUserRepository{db: db}
 }
 
-func (model *MysqlUserRepository) CreateUser(id uuid.UUID, firstName string, lastName string, age uint8, gender domain.UserGender, interests string, city string, password string) error {
+func (model *MysqlUserRepository) Create(id uuid.UUID, firstName string, lastName string, age uint8, gender domain.UserGender, interests string, city string, password string) error {
 	stmt, err := model.db.Prepare("INSERT INTO users (id, first_name, last_name, age,  gender, interests, city, salt, password) VALUES (?,?,?,?,?,?,?,?,?)")
 
 	if err != nil {
@@ -38,41 +49,52 @@ func (model *MysqlUserRepository) CreateUser(id uuid.UUID, firstName string, las
 	return nil
 }
 
-func (model *MysqlUserRepository) FindById(id uuid.UUID) ([]map[string]interface{}, error) {
-	stmt, err := model.db.Prepare("SELECT * FROM users WHERE id=?")
+func (model *MysqlUserRepository) ExistsWithIdAndPassword(id uuid.UUID, password string) (bool, error) {
+	stmt, err := model.db.Prepare("SELECT password,salt FROM users WHERE id=?")
 	if err != nil {
-		return []map[string]interface{}{}, errors.New("failed to fetch user, error: " + err.Error())
+		return false, fmt.Errorf("failed to fetch user, error: %s", err.Error())
 	}
 	rows, err := stmt.Query(id.String())
 	if err != nil {
-		return []map[string]interface{}{}, errors.New("failed to fetch user, error: " + err.Error())
+		return false, fmt.Errorf("failed to fetch user, error: %s", err.Error())
+	}
+	if !rows.Next() {
+		return false, nil
+	}
+	var dbPassword []byte
+	var dbSalt []byte
+	if err := rows.Scan(&dbPassword, &dbSalt); err != nil {
+		return false, fmt.Errorf("failed to fetch user, error: %s", err.Error())
+	}
+	err = bcrypt.CompareHashAndPassword(dbPassword, append([]byte(password), dbSalt...))
+	if err == bcrypt.ErrMismatchedHashAndPassword {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("failed to compare password, error: %s", err.Error())
 	}
 
-	result := make([]map[string]interface{}, 0)
-	cols, _ := rows.Columns()
+	return true, nil
+}
+
+func (model *MysqlUserRepository) GetAll() ([]FindAllItem, error) {
+	stmt, err := model.db.Prepare("SELECT id,first_name,last_name,age,interests,city,gender FROM users")
+	if err != nil {
+		return []FindAllItem{}, errors.New("failed to fetch user, error: " + err.Error())
+	}
+	rows, err := stmt.Query()
+	if err != nil {
+		return []FindAllItem{}, errors.New("failed to fetch user, error: " + err.Error())
+	}
+
+	var result []FindAllItem
 	for rows.Next() {
-		// Create a slice of interface{}'s to represent each column,
-		// and a second slice to contain pointers to each item in the columns slice.
-		columns := make([]interface{}, len(cols))
-		columnPointers := make([]interface{}, len(cols))
-		for i, _ := range columns {
-			columnPointers[i] = &columns[i]
+		item := FindAllItem{}
+		if err := rows.Scan(&item.Id, &item.FirstName, &item.LastName, &item.Age, &item.Interests, &item.City, &item.Gender); err != nil {
+			return []FindAllItem{}, err
 		}
 
-		// Scan the result into the column pointers...
-		if err := rows.Scan(columnPointers...); err != nil {
-			return []map[string]interface{}{}, err
-		}
-
-		// Create our map, and retrieve the value for each column from the pointers slice,
-		// storing it in the map with the name of the column as the key.
-		m := make(map[string]interface{})
-		for i, colName := range cols {
-			val := columnPointers[i].(*interface{})
-			m[colName] = *val
-		}
-
-		result = append(result, m)
+		result = append(result, item)
 	}
 
 	return result, nil

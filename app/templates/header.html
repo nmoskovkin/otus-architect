@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <title>{{.PageTitle}}</title>
     <style type="text/css">
+        body {
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+        }
+
         .label-block {
             display: block;
             margin-top: 10px;
@@ -20,7 +24,65 @@
         .error {
             color: red;
         }
+
+        .ucfirst {
+            text-transform: capitalize;
+        }
+
+        .one-row {
+            display: flex;
+            flex-direction: row;
+        }
+
+        .mr10 {
+            margin-right: 10px;
+        }
+
+        .mt10 {
+            margin-top: 10px;
+        }
+
+        .w100 {
+            width: 100px;
+        }
+
+        .tile {
+            background: #c4ff79;
+            min-width: 200px;
+            min-height: 200px;
+        }
+
+        .grid {
+            display: flex;
+            flex-wrap: wrap;
+            flex-direction: row;
+            justify-content: start;
+            align-items: initial;
+            align-content: start
+        }
+
+        .prop {
+            height: 35px;
+            display: flex;
+        }
+
+        .w50p {
+            width: 50%;
+        }
+
+        .w100p {
+            width: 100%;
+        }
+
+        a, a:visited, a:hover {
+            color: blue;
+        }
     </style>
 </head>
 <body>
+<div>
+    <a href="/list">List</a>
+    <a href="/register">Register</a>
+    <a href="/auth">Auth</a>
+</div>
 <h1>{{.PageTitle}}</h1>

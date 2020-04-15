@@ -4,11 +4,8 @@ import (
 	"architectSocial/app/helpers"
 	"architectSocial/app/repository"
 	"architectSocial/app/templates"
+	"architectSocial/domain"
 	"database/sql"
-	"errors"
-	"fmt"
-	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 	"html/template"
 	"net/http"
 )
@@ -17,10 +14,10 @@ func CreateAuthGetHandler(templ *template.Template, sessionWrapper helpers.Sessi
 	return func(w http.ResponseWriter, r *http.Request) error {
 		userId, err := sessionWrapper.GetRegistrationId(r)
 		templData := templates.AuthData{
-			PageTitle: "Register New User",
+			PageTitle: "Authenticate",
 		}
 		if err == nil {
-			templData.Id = userId
+			templData.Login = userId
 		}
 		err = templ.ExecuteTemplate(w, "auth.html", templData)
 		if err != nil {
@@ -33,41 +30,49 @@ func CreateAuthGetHandler(templ *template.Template, sessionWrapper helpers.Sessi
 
 func CreateAuthPostHandler(templ *template.Template, db *sql.DB, sessionWrapper helpers.SessionWrapper) ErrorReturningHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		repo := repository.CreateMysqlUserRepository(db)
+		authService := domain.CreateAuthUserService(repository.CreateMysqlUserRepository(db))
 		err := r.ParseForm()
 		if err != nil {
-			return NewHTTPError(err, 500, "")
+			return NewHTTPError(err, 400, "")
 		}
-		id := r.Form.Get("id")
-		userPassword := r.Form.Get("password")
-		uuid_, err := uuid.Parse(id)
+		authUserDto := &domain.AuthUserDto{
+			Login:    r.Form.Get("login"),
+			Password: r.Form.Get("password"),
+		}
+		validationResult, isAuthenticated, err := authService(authUserDto)
 		if err != nil {
-			// error incorrect login or email
-			return NewHTTPError(err, 500, "")
+			return NewHTTPError(err, 400, "")
 		}
-		users, err := repo.FindById(uuid_)
-		if err != nil {
-			return NewHTTPError(err, 500, "")
+		if validationResult != nil {
+			err := templ.ExecuteTemplate(w, "auth.html", templates.AuthData{
+				PageTitle: "Authenticate",
+				Errors:    validationResult.GetAllErrors(),
+				Login:     r.Form.Get("login"),
+			})
+			if err != nil {
+				return NewHTTPError(err, 500, "")
+			}
+			return nil
 		}
-		if len(users) == 0 {
-			// error user not found
+		if isAuthenticated {
+			err := sessionWrapper.SetAuthenticated(authUserDto.Login, r, w)
+			if err != nil {
+				return NewHTTPError(err, 500, "")
+			}
+
+			return nil
 		}
 
-		//TODO move to service
-		password := users[0]["password"]
-		salt := users[0]["salt"]
-
-		passwordValue, okV := password.([]byte)
-		saltValue, okS := salt.([]byte)
-		if !okS || !okV {
-			return NewHTTPError(errors.New("!okS || !okV "), 500, "")
-		}
-		err = bcrypt.CompareHashAndPassword([]byte(passwordValue), append([]byte(userPassword), saltValue...))
+		err = templ.ExecuteTemplate(w, "auth.html", templates.AuthData{
+			PageTitle: "Authenticate",
+			Errors:    []string{"invalid credentials"},
+			Login:     r.Form.Get("login"),
+		})
 		if err != nil {
 			return NewHTTPError(err, 500, "")
 		}
-		fmt.Println(users)
 
+		http.Redirect(w, r, "/list", 301)
 		return nil
 	}
 }
