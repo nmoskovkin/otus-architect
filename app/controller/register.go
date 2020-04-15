@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"architectSocial/app/helpers"
 	"architectSocial/app/repository"
 	"architectSocial/app/templates"
 	"architectSocial/domain"
@@ -23,9 +24,9 @@ func CreateRegisterGetHandler(templ *template.Template) ErrorReturningHandlerFun
 	}
 }
 
-func CreateRegisterPostHandler(templ *template.Template, db *sql.DB) ErrorReturningHandlerFunc {
+func CreateRegisterPostHandler(templ *template.Template, db *sql.DB, sessionWrapper helpers.SessionWrapper) ErrorReturningHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		createRegisterService := domain.CreateRegisterUserService(repository.CreateUserRepository(db))
+		createRegisterService := domain.CreateRegisterUserService(repository.CreateMysqlUserRepository(db))
 		err := r.ParseForm()
 		if err != nil {
 			return NewHTTPError(err, 500, "")
@@ -40,7 +41,7 @@ func CreateRegisterPostHandler(templ *template.Template, db *sql.DB) ErrorReturn
 			Password:             r.Form.Get("password"),
 			PasswordConfirmation: r.Form.Get("password-confirmation"),
 		}
-		validationResult, err := createRegisterService(&dto)
+		validationResult, userId, err := createRegisterService(&dto)
 		if err != nil {
 			return NewHTTPError(err, 500, "")
 		}
@@ -60,6 +61,11 @@ func CreateRegisterPostHandler(templ *template.Template, db *sql.DB) ErrorReturn
 				return NewHTTPError(err, 500, "")
 			}
 			return nil
+		}
+
+		err = sessionWrapper.SetRegistrationId(userId, r, w)
+		if err != nil {
+			return NewHTTPError(err, 500, "")
 		}
 
 		return nil

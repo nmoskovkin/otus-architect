@@ -18,7 +18,7 @@ type RegisterUserDto struct {
 	PasswordConfirmation string
 }
 
-type RegisterUserService func(dto *RegisterUserDto) (*helper.ValidationResult, error)
+type RegisterUserService func(dto *RegisterUserDto) (*helper.ValidationResult, string, error)
 
 func registerUserValidateDto(dto *RegisterUserDto) *helper.ValidationResult {
 	result := helper.NewValidationResult()
@@ -65,10 +65,10 @@ func registerUserValidateDto(dto *RegisterUserDto) *helper.ValidationResult {
 }
 
 func CreateRegisterUserService(userModel UserRepository) RegisterUserService {
-	return func(dto *RegisterUserDto) (*helper.ValidationResult, error) {
+	return func(dto *RegisterUserDto) (*helper.ValidationResult, string, error) {
 		validationResult := registerUserValidateDto(dto)
 		if !validationResult.IsValid() {
-			return validationResult, nil
+			return validationResult, "", nil
 		}
 		ageNum, _ := strconv.Atoi(dto.Age)
 		var gender UserGender
@@ -81,14 +81,14 @@ func CreateRegisterUserService(userModel UserRepository) RegisterUserService {
 		}
 		id, err := uuid.NewUUID()
 		if err != nil {
-			return nil, errors.New("failed to create user, error:" + err.Error())
+			return nil, "", errors.New("failed to create user, error:" + err.Error())
 		}
 
 		err = userModel.CreateUser(id, dto.FirstName, dto.LastName, uint8(ageNum), gender, dto.Interests, dto.City, dto.Password)
 		if err != nil {
-			return nil, errors.New("failed to create user, error:" + err.Error())
+			return nil, "", errors.New("failed to create user, error:" + err.Error())
 		}
 
-		return nil, nil
+		return nil, id.String(), nil
 	}
 }

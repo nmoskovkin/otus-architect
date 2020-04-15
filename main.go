@@ -2,6 +2,7 @@ package main
 
 import (
 	"architectSocial/app/controller"
+	"architectSocial/app/helpers"
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-migrate/migrate/v4"
@@ -22,8 +23,8 @@ func main() {
 	defer db.Close()
 	migrateDatabase(db, "app/migrations")
 	templ := registerHtmlTemplates("app/templates")
-	//sessionStore := initSessionStore(config.SessionKey)
-	router := initRouter(templ, db)
+	sessionWrapper := initSessionStore(config.SessionKey)
+	router := initRouter(templ, db, sessionWrapper)
 	startWebServer(router, config.Port)
 
 	//fmt.Println(err)
@@ -134,11 +135,13 @@ func registerHtmlTemplates(path string) *template.Template {
 	return tmpl
 }
 
-func initSessionStore(sessionKey string) *sessions.CookieStore {
-	return sessions.NewCookieStore([]byte(sessionKey))
+func initSessionStore(sessionKey string) helpers.SessionWrapper {
+	store := sessions.NewCookieStore([]byte(sessionKey))
+
+	return helpers.NewGorillaSessionWrapper(store)
 }
 
-func initRouter(templ *template.Template, db *sql.DB) *mux.Router {
+func initRouter(templ *template.Template, db *sql.DB, sessionWrapper helpers.SessionWrapper) *mux.Router {
 	handlerFactory := controller.NewHandlerFactory(templ)
 
 	router := mux.NewRouter()
@@ -149,7 +152,17 @@ func initRouter(templ *template.Template, db *sql.DB) *mux.Router {
 
 	router.HandleFunc(
 		"/register",
-		handlerFactory.CreateHandler(controller.CreateRegisterPostHandler(templ, db)).ServeHTTP,
+		handlerFactory.CreateHandler(controller.CreateRegisterPostHandler(templ, db, sessionWrapper)).ServeHTTP,
+	).Methods(http.MethodPost)
+
+	router.HandleFunc(
+		"/auth",
+		handlerFactory.CreateHandler(controller.CreateAuthGetHandler(templ, sessionWrapper)).ServeHTTP,
+	).Methods(http.MethodGet)
+
+	router.HandleFunc(
+		"/auth",
+		handlerFactory.CreateHandler(controller.CreateAuthPostHandler(templ, db, sessionWrapper)).ServeHTTP,
 	).Methods(http.MethodPost)
 
 	return router
