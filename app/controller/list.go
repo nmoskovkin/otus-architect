@@ -12,7 +12,7 @@ import (
 func CreateListGetHandler(templ *template.Template, db *sql.DB, sessionWrapper helpers.SessionWrapper) ErrorReturningHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		repo := repository.CreateMysqlUserRepository(db)
-		userList, err := repo.GetAll()
+		userList, err := repo.GetAll(repository.GetAllFilter{})
 		if err != nil {
 			return NewHTTPError(err, 500, "")
 		}

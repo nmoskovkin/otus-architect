@@ -1,0 +1,37 @@
+{{ template "header.html" . }}
+
+<div class="mt10 mr10 tile">
+    <div class="grid" style="padding: 10px">
+        <div class="prop w100p">
+            <span class="ucfirst">{{.User.FirstName}}</span>&nbsp;<span class="ucfirst">{{.User.LastName}}</span>
+        </div>
+        <div class="prop w50p">
+            Age
+        </div>
+        <div class="prop w50p">
+            {{.User.Age}}
+        </div>
+        <div class="prop w50p">
+            Gender
+        </div>
+        <div class="prop w50p">
+            {{ if  eq .User.Gender 1}} Male {{end}}
+            {{ if  eq .User.Gender 2}} Female {{end}}
+            {{ if  eq .User.Gender 3}} Other {{end}}
+        </div>
+        <div class="prop w50p">
+            From
+        </div>
+        <div class="prop w50p">
+            {{.User.City}}
+        </div>
+        <div class="prop w50p">
+            Interests
+        </div>
+        <div class="prop w50p">
+            {{.User.Interests}}
+        </div>
+    </div>
+</div>
+
+{{ template "footer.html" . }}

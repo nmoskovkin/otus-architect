@@ -24,6 +24,10 @@ type FindAllItem struct {
 	Gender    uint8
 }
 
+type GetAllFilter struct {
+	Id string
+}
+
 func CreateMysqlUserRepository(db *sql.DB) *MysqlUserRepository {
 	return &MysqlUserRepository{db: db}
 }
@@ -77,12 +81,19 @@ func (model *MysqlUserRepository) ExistsWithIdAndPassword(id uuid.UUID, password
 	return true, nil
 }
 
-func (model *MysqlUserRepository) GetAll() ([]FindAllItem, error) {
-	stmt, err := model.db.Prepare("SELECT id,first_name,last_name,age,interests,city,gender FROM users")
+func (model *MysqlUserRepository) GetAll(filter GetAllFilter) ([]FindAllItem, error) {
+	wherePart := ""
+	args := []interface{}{}
+	if filter.Id != "" {
+		// Query builder :(
+		args = append(args, filter.Id)
+		wherePart = "WHERE id=?"
+	}
+	stmt, err := model.db.Prepare("SELECT id,first_name,last_name,age,interests,city,gender FROM users " + wherePart)
 	if err != nil {
 		return []FindAllItem{}, errors.New("failed to fetch user, error: " + err.Error())
 	}
-	rows, err := stmt.Query()
+	rows, err := stmt.Query(args...)
 	if err != nil {
 		return []FindAllItem{}, errors.New("failed to fetch user, error: " + err.Error())
 	}

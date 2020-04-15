@@ -4,7 +4,7 @@
         <div class="mt10 mr10 tile">
             <div class="grid" style="padding: 10px">
                 <div class="prop w100p">
-                    <span class="ucfirst">{{$user.FirstName}}</span>&nbsp;<span class="ucfirst">{{$user.LastName}}</span>
+                    <span class="ucfirst">{{$user.FirstName}}</span>&nbsp<span class="ucfirst">{{$user.LastName}}</span>&nbsp;(<a href="/details?id={{$user.Id}}">details</a>)
                 </div>
                 <div class="prop w50p">
                     Age
@@ -16,7 +16,9 @@
                     Gender
                 </div>
                 <div class="prop w50p">
-                    {{$user.Gender}}
+                    {{ if  eq $user.Gender 1}} Male {{end}}
+                    {{ if  eq $user.Gender 2}} Female {{end}}
+                    {{ if  eq $user.Gender 3}} Other {{end}}
                 </div>
                 <div class="prop w50p">
                     From
