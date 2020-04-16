@@ -96,12 +96,17 @@ func initRouter(templ *template.Template, db *sql.DB, sessionWrapper helpers.Ses
 	router := mux.NewRouter()
 
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/list", 301)
+		http.Redirect(w, r, "/list", 302)
 	})
+
+	router.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
+		_ = sessionWrapper.Clear(r, w)
+		http.Redirect(w, r, "/list", 302)
+	}).Methods(http.MethodPost)
 
 	router.HandleFunc(
 		"/register",
-		handlerFactory.CreateHandler(controller.CreateRegisterGetHandler(templ)).ServeHTTP,
+		handlerFactory.CreateHandler(controller.CreateRegisterGetHandler(templ, sessionWrapper)).ServeHTTP,
 	).Methods(http.MethodGet)
 
 	router.HandleFunc(
@@ -133,6 +138,11 @@ func initRouter(templ *template.Template, db *sql.DB, sessionWrapper helpers.Ses
 		"/details",
 		handlerFactory.CreateHandler(controller.CreateDetailsPostHandler(templ, db, sessionWrapper)).ServeHTTP,
 	).Methods(http.MethodPost)
+
+	router.HandleFunc(
+		"/friends",
+		handlerFactory.CreateHandler(controller.CreateFriendsListGetHandler(templ, db, sessionWrapper)).ServeHTTP,
+	).Methods(http.MethodGet)
 
 	return router
 }

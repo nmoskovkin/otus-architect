@@ -12,6 +12,13 @@ import (
 
 func CreateAuthGetHandler(templ *template.Template, sessionWrapper helpers.SessionWrapper) ErrorReturningHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
+		isAuth, _, err := sessionWrapper.IsAuthenticated(r)
+		if isAuth && err == nil {
+			http.Redirect(w, r, "/list", 302)
+
+			return nil
+		}
+
 		userId, err := sessionWrapper.GetRegistrationId(r)
 		templData := templates.AuthData{
 			PageTitle: "Authenticate",
@@ -30,8 +37,15 @@ func CreateAuthGetHandler(templ *template.Template, sessionWrapper helpers.Sessi
 
 func CreateAuthPostHandler(templ *template.Template, db *sql.DB, sessionWrapper helpers.SessionWrapper) ErrorReturningHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
+		isAuth, _, err := sessionWrapper.IsAuthenticated(r)
+		if isAuth && err == nil {
+			http.Redirect(w, r, "/list", 302)
+
+			return nil
+		}
+
 		authService := domain.CreateAuthUserService(repository.CreateMysqlUserRepository(db))
-		err := r.ParseForm()
+		err = r.ParseForm()
 		if err != nil {
 			return NewHTTPError(err, 400, "")
 		}
@@ -60,7 +74,7 @@ func CreateAuthPostHandler(templ *template.Template, db *sql.DB, sessionWrapper 
 				return NewHTTPError(err, 500, "")
 			}
 
-			http.Redirect(w, r, "/list", 301)
+			http.Redirect(w, r, "/list", 302)
 			return nil
 		}
 

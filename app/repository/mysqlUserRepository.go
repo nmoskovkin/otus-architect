@@ -25,7 +25,8 @@ type FindAllItem struct {
 }
 
 type GetAllFilter struct {
-	Id string
+	Id  string
+	Ids []string
 }
 
 func CreateMysqlUserRepository(db *sql.DB) *MysqlUserRepository {
@@ -88,6 +89,16 @@ func (repository *MysqlUserRepository) GetAll(filter GetAllFilter) ([]FindAllIte
 		// Query builder :(
 		args = append(args, filter.Id)
 		wherePart = "WHERE id=?"
+	} else if len(filter.Ids) > 0 {
+		wherePart = "WHERE id IN ("
+		for i, id := range filter.Ids {
+			if i > 0 {
+				wherePart += ","
+			}
+			wherePart += "?"
+			args = append(args, id)
+		}
+		wherePart += ")"
 	}
 	stmt, err := repository.db.Prepare("SELECT id,first_name,last_name,age,interests,city,gender FROM users " + wherePart)
 	if err != nil {

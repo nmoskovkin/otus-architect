@@ -10,9 +10,16 @@ import (
 	"net/http"
 )
 
-func CreateRegisterGetHandler(templ *template.Template) ErrorReturningHandlerFunc {
+func CreateRegisterGetHandler(templ *template.Template, sessionWrapper helpers.SessionWrapper) ErrorReturningHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		err := templ.ExecuteTemplate(w, "register.html", templates.RegisterData{
+		isAuth, _, err := sessionWrapper.IsAuthenticated(r)
+		if isAuth && err == nil {
+			http.Redirect(w, r, "/list", 302)
+
+			return nil
+		}
+
+		err = templ.ExecuteTemplate(w, "register.html", templates.RegisterData{
 			PageTitle: "Register New User",
 			Errors:    []string{},
 		})
@@ -26,8 +33,15 @@ func CreateRegisterGetHandler(templ *template.Template) ErrorReturningHandlerFun
 
 func CreateRegisterPostHandler(templ *template.Template, db *sql.DB, sessionWrapper helpers.SessionWrapper) ErrorReturningHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
+		isAuth, _, err := sessionWrapper.IsAuthenticated(r)
+		if isAuth && err == nil {
+			http.Redirect(w, r, "/list", 302)
+
+			return nil
+		}
+
 		registerService := domain.CreateRegisterUserService(repository.CreateMysqlUserRepository(db))
-		err := r.ParseForm()
+		err = r.ParseForm()
 		if err != nil {
 			return NewHTTPError(err, 400, "")
 		}
@@ -67,7 +81,7 @@ func CreateRegisterPostHandler(templ *template.Template, db *sql.DB, sessionWrap
 		if err != nil {
 			return NewHTTPError(err, 500, "")
 		}
-		http.Redirect(w, r, "/auth", 301)
+		http.Redirect(w, r, "/auth", 302)
 
 		return nil
 	}

@@ -7,4 +7,5 @@ type DetailsData struct {
 	User            repository.FindAllItem
 	IsAlreadyFriend bool
 	Errors          []string
+	CurrentUserId   string
 }

@@ -3,8 +3,9 @@
     {{range $user := .Users}}
         <div class="mt10 mr10 tile">
             <div class="grid" style="padding: 10px">
-                <div class="prop w100p">
-                    <span class="ucfirst">{{$user.FirstName}}</span>&nbsp<span class="ucfirst">{{$user.LastName}}</span>&nbsp;(<a href="/details?id={{$user.Id}}">details</a>)
+                <div class="w100p prop-no-flex">
+                    <span class="ucfirst">{{$user.FirstName}}</span>&nbsp<span class="ucfirst">{{$user.LastName}}</span>&nbsp;(<a
+                            href="/details?id={{$user.Id}}">details</a>) {{ if and $.CurrentUserId }}{{ if  eq $user.Id $.CurrentUserId}} <span class="bg1 p5">It's you</span>  {{end}}{{end}}
                 </div>
                 <div class="prop w50p">
                     Age

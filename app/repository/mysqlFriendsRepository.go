@@ -33,25 +33,25 @@ func (repository *MysqlFriendsRepository) Create(fromUser uuid.UUID, toUser uuid
 	return nil
 }
 
-func (repository *MysqlFriendsRepository) GetFriendsMap(fromUser uuid.UUID) (map[string]bool, error) {
+func (repository *MysqlFriendsRepository) GetFriends(fromUser uuid.UUID) ([]string, error) {
 	stmt, err := repository.db.Prepare("SELECT to_user FROM friends WHERE from_user=?")
 
 	if err != nil {
-		return map[string]bool{}, fmt.Errorf("failed to fetch friedns, error: %s", err.Error())
+		return []string{}, fmt.Errorf("failed to fetch friedns, error: %s", err.Error())
 	}
 
 	rows, err := stmt.Query(fromUser.String())
 	if err != nil {
-		return map[string]bool{}, fmt.Errorf("failed to fetch friedns, error: %s", err.Error())
+		return []string{}, fmt.Errorf("failed to fetch friedns, error: %s", err.Error())
 	}
-	result := map[string]bool{}
-	var toUser string
+	result := []string{}
 	for rows.Next() {
+		var toUser string
 		err = rows.Scan(&toUser)
 		if err != nil {
-			return map[string]bool{}, fmt.Errorf("failed to fetch data, error: %s", err.Error())
+			return []string{}, fmt.Errorf("failed to fetch data, error: %s", err.Error())
 		}
-		result[toUser] = true
+		result = append(result, toUser)
 	}
 	return result, nil
 }

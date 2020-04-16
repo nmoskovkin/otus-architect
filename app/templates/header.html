@@ -77,12 +77,35 @@
         a, a:visited, a:hover {
             color: blue;
         }
+
+        .bg1 {
+            background: beige;
+        }
+
+        .p5 {
+            padding: 5px;
+        }
+
+        .prop-no-flex {
+            height: 35px;
+        }
     </style>
 </head>
 <body>
 <div>
-    <a href="/list">List</a>
-    <a href="/register">Register</a>
-    <a href="/auth">Auth</a>
+    <a href="/list">All People</a>
+    {{ if .CurrentUserId }}<a href="/friends">Friends</a>{{end}}
+    {{ if not .CurrentUserId }} <a href="/register">Register</a>{{end}}
+    {{ if not .CurrentUserId }}<a href="/auth">Auth</a>{{end}}
 </div>
+
+{{ if .CurrentUserId }}
+<div class="bg1 p5 mt10">
+
+        Authorized: <b>{{.CurrentUserId}}</b>
+        <form action="/logout" method="post" enctype="application/x-www-form-urlencoded">
+            <input type="submit" value="Logout">
+        </form>
+</div>
+{{ end }}
 <h1>{{.PageTitle}}</h1>

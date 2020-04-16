@@ -49,6 +49,7 @@ func CreateDetailsGetHandler(templ *template.Template, db *sql.DB, sessionWrappe
 			User:            userList[0],
 			PageTitle:       "Users",
 			IsAlreadyFriend: areFriends,
+			CurrentUserId:   currentUserId,
 		}
 		err = templ.ExecuteTemplate(w, "details.html", detailsData)
 		if err != nil {
@@ -109,6 +110,7 @@ func CreateDetailsPostHandler(templ *template.Template, db *sql.DB, sessionWrapp
 				PageTitle:       "Users",
 				Errors:          validationResult.GetAllErrors(),
 				IsAlreadyFriend: areFriends,
+				CurrentUserId:   currentUserId,
 			}
 			err = templ.ExecuteTemplate(w, "details.html", detailsData)
 			if err != nil {
@@ -117,7 +119,7 @@ func CreateDetailsPostHandler(templ *template.Template, db *sql.DB, sessionWrapp
 			return nil
 		}
 
-		http.Redirect(w, r, "/details?id="+currentUserId, 301)
+		http.Redirect(w, r, "/details?id="+pageUserId, 302)
 		return nil
 	}
 }

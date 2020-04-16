@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gorilla/sessions"
 	"net/http"
 )
@@ -11,6 +12,7 @@ type SessionWrapper interface {
 	SetAuthenticated(id string, r *http.Request, w http.ResponseWriter) error
 	GetRegistrationId(r *http.Request) (string, error)
 	IsAuthenticated(r *http.Request) (bool, string, error)
+	Clear(r *http.Request, w http.ResponseWriter) error
 }
 
 type GorillaSessionWrapper struct {
@@ -19,6 +21,26 @@ type GorillaSessionWrapper struct {
 
 func NewGorillaSessionWrapper(store sessions.Store) *GorillaSessionWrapper {
 	return &GorillaSessionWrapper{store: store}
+}
+
+func (wrapper *GorillaSessionWrapper) Clear(r *http.Request, w http.ResponseWriter) error {
+	session, err := wrapper.store.Get(r, "user-session")
+	if err != nil {
+		return fmt.Errorf("failed to get session error: %s", err.Error())
+	}
+
+	err = session.Save(r, w)
+	if err != nil {
+		return fmt.Errorf("failed to save session: %s", err.Error())
+	}
+
+	session.Options.MaxAge = -1
+	err = session.Save(r, w)
+	if err != nil {
+		return fmt.Errorf("failed to save session with max age: %s", err.Error())
+	}
+
+	return nil
 }
 
 func (wrapper *GorillaSessionWrapper) SetRegistrationId(id string, r *http.Request, w http.ResponseWriter) error {
