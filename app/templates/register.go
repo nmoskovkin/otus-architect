@@ -1,6 +1,7 @@
 package templates
 
 type RegisterData struct {
+	Login         string
 	PageTitle     string
 	Errors        []string
 	FirstName     string

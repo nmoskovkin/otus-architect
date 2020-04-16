@@ -19,12 +19,12 @@ func CreateAuthGetHandler(templ *template.Template, sessionWrapper helpers.Sessi
 			return nil
 		}
 
-		userId, err := sessionWrapper.GetRegistrationId(r)
+		login, err := sessionWrapper.GetRegistrationId(r)
 		templData := templates.AuthData{
 			PageTitle: "Authenticate",
 		}
 		if err == nil {
-			templData.Login = userId
+			templData.Login = login
 		}
 		err = templ.ExecuteTemplate(w, "auth.html", templData)
 		if err != nil {
@@ -53,7 +53,10 @@ func CreateAuthPostHandler(templ *template.Template, db *sql.DB, sessionWrapper 
 			Login:    r.Form.Get("login"),
 			Password: r.Form.Get("password"),
 		}
-		validationResult, isAuthenticated, err := authService(authUserDto)
+		var authId string
+		validationResult, isAuthenticated, err := authService(authUserDto, func(id string) {
+			authId = id
+		})
 		if err != nil {
 			return NewHTTPError(err, 400, "")
 		}
@@ -69,7 +72,7 @@ func CreateAuthPostHandler(templ *template.Template, db *sql.DB, sessionWrapper 
 			return nil
 		}
 		if isAuthenticated {
-			err := sessionWrapper.SetAuthenticated(authUserDto.Login, r, w)
+			err := sessionWrapper.SetAuthenticated(authId, r, w)
 			if err != nil {
 				return NewHTTPError(err, 500, "")
 			}

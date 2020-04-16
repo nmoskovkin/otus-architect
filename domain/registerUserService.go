@@ -16,6 +16,7 @@ type RegisterUserDto struct {
 	City                 string
 	Password             string
 	PasswordConfirmation string
+	Login                string
 }
 
 type RegisterUserService func(dto *RegisterUserDto) (*helper.ValidationResult, string, error)
@@ -26,6 +27,9 @@ func registerUserValidateDto(dto *RegisterUserDto) *helper.ValidationResult {
 	// TODO maybe validate empty values in a loop
 	if dto.FirstName == "" {
 		result.AddError("firstName", "First name is empty")
+	}
+	if dto.Login == "" {
+		result.AddError("login", "Login is empty")
 	}
 	if dto.LastName == "" {
 		result.AddError("firstName", "Last name is empty")
@@ -43,13 +47,13 @@ func registerUserValidateDto(dto *RegisterUserDto) *helper.ValidationResult {
 		result.AddError("city", "City is empty")
 	}
 	if dto.Password == "" {
-		result.AddError("Password", "Password is empty")
+		result.AddError("password", "Password is empty")
 	}
 	if dto.PasswordConfirmation == "" {
 		result.AddError("passwordConfirm", "Please confirm your Password")
 	}
 	if dto.Password != "" && dto.PasswordConfirmation != "" && dto.Password != dto.PasswordConfirmation {
-		result.AddError("Password", "The passwords don't match")
+		result.AddError("password", "The passwords don't match")
 	}
 	if dto.Age != "" {
 		num, err := strconv.Atoi(dto.Age)
@@ -59,6 +63,9 @@ func registerUserValidateDto(dto *RegisterUserDto) *helper.ValidationResult {
 		if err == nil && num <= 0 {
 			result.AddError("age", "Age must be greater than zero")
 		}
+	}
+	if dto.Login != "" && len(dto.Login) > 64 {
+		result.AddError("login", "Login must container 64 characters or less")
 	}
 
 	return result
@@ -84,7 +91,7 @@ func CreateRegisterUserService(userModel UserRepository) RegisterUserService {
 			return nil, "", errors.New("failed to create user, error:" + err.Error())
 		}
 
-		err = userModel.Create(id, dto.FirstName, dto.LastName, uint8(ageNum), gender, dto.Interests, dto.City, dto.Password)
+		err = userModel.Create(id, dto.Login, dto.FirstName, dto.LastName, uint8(ageNum), gender, dto.Interests, dto.City, dto.Password)
 		if err != nil {
 			return nil, "", errors.New("failed to create user, error:" + err.Error())
 		}

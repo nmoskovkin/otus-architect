@@ -3,7 +3,6 @@ package domain
 import (
 	"architectSocial/domain/helper"
 	"fmt"
-	"github.com/google/uuid"
 )
 
 type AuthUserDto struct {
@@ -11,20 +10,15 @@ type AuthUserDto struct {
 	Password string
 }
 
-type AuthUserService func(dto *AuthUserDto) (*helper.ValidationResult, bool, error)
+type AuthUserService func(dto *AuthUserDto, authenticator Authenticator) (*helper.ValidationResult, bool, error)
+
+type Authenticator func(id string)
 
 func authUserValidateDto(dto *AuthUserDto) *helper.ValidationResult {
 	result := helper.NewValidationResult()
 	if dto.Login == "" {
 		result.AddError("Login", "Login is empty")
 	}
-	if dto.Login != "" {
-		_, err := uuid.Parse(dto.Login)
-		if err != nil {
-			result.AddError("Login", "Login must be correct uuid")
-		}
-	}
-
 	if dto.Password == "" {
 		result.AddError("Password", "Password is empty")
 	}
@@ -33,20 +27,22 @@ func authUserValidateDto(dto *AuthUserDto) *helper.ValidationResult {
 }
 
 func CreateAuthUserService(userRepository UserRepository) AuthUserService {
-	return func(dto *AuthUserDto) (*helper.ValidationResult, bool, error) {
+	return func(dto *AuthUserDto, authenticator Authenticator) (*helper.ValidationResult, bool, error) {
 		validationResult := authUserValidateDto(dto)
 		if !validationResult.IsValid() {
 			return validationResult, false, nil
 		}
-
-		uuid_, err := uuid.Parse(dto.Login)
-		if err != nil {
-			return nil, false, fmt.Errorf("failed to parse Login, error: %s", err.Error())
-		}
-		isAuth, err := userRepository.ExistsWithIdAndPassword(uuid_, dto.Password)
-		if err != nil {
+		id, err := userRepository.ExistsWithLoginAndPassword(dto.Login, dto.Password)
+		var isAuth bool
+		if err == UserErrNotFound {
+			isAuth = false
+		} else if err != nil {
 			return nil, false, fmt.Errorf("failed find user, error: %s", err.Error())
+		} else {
+			isAuth = true
+			authenticator(id)
 		}
+
 		return nil, isAuth, nil
 	}
 }

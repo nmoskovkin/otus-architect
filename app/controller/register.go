@@ -46,6 +46,7 @@ func CreateRegisterPostHandler(templ *template.Template, db *sql.DB, sessionWrap
 			return NewHTTPError(err, 400, "")
 		}
 		dto := domain.RegisterUserDto{
+			Login:                r.Form.Get("login"),
 			FirstName:            r.Form.Get("first_name"),
 			LastName:             r.Form.Get("last_name"),
 			Age:                  r.Form.Get("age"),
@@ -55,7 +56,7 @@ func CreateRegisterPostHandler(templ *template.Template, db *sql.DB, sessionWrap
 			Password:             r.Form.Get("password"),
 			PasswordConfirmation: r.Form.Get("password-confirmation"),
 		}
-		validationResult, userId, err := registerService(&dto)
+		validationResult, _, err := registerService(&dto)
 		if err != nil {
 			return NewHTTPError(err, 400, "")
 		}
@@ -63,6 +64,7 @@ func CreateRegisterPostHandler(templ *template.Template, db *sql.DB, sessionWrap
 		if validationResult != nil {
 			err := templ.ExecuteTemplate(w, "register.html", templates.RegisterData{
 				PageTitle: "Register New User",
+				Login:     dto.Login,
 				Errors:    validationResult.GetAllErrors(),
 				FirstName: dto.FirstName,
 				LastName:  dto.LastName,
@@ -77,7 +79,7 @@ func CreateRegisterPostHandler(templ *template.Template, db *sql.DB, sessionWrap
 			return nil
 		}
 
-		err = sessionWrapper.SetRegistrationId(userId, r, w)
+		err = sessionWrapper.SetRegistrationId(dto.Login, r, w)
 		if err != nil {
 			return NewHTTPError(err, 500, "")
 		}

@@ -34,9 +34,8 @@ func CreateMysqlUserRepository(db *sql.DB) *MysqlUserRepository {
 	return &MysqlUserRepository{db: db}
 }
 
-func (repository *MysqlUserRepository) Create(id uuid.UUID, firstName string, lastName string, age uint8, gender domain.UserGender, interests string, city string, password string) error {
-	stmt, err := repository.db.Prepare("INSERT INTO users (id, first_name, last_name, age,  gender, interests, city, salt, password) VALUES (?,?,?,?,?,?,?,?,?)")
-
+func (repository *MysqlUserRepository) Create(id uuid.UUID, login string, firstName string, lastName string, age uint8, gender domain.UserGender, interests string, city string, password string) error {
+	stmt, err := repository.db.Prepare("INSERT INTO users (id, login, first_name, last_name, age,  gender, interests, city, salt, password) VALUES (?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		return errors.New("failed to create user, error: " + err.Error())
 	}
@@ -47,7 +46,7 @@ func (repository *MysqlUserRepository) Create(id uuid.UUID, firstName string, la
 		return errors.New("failed to create user, error: " + err.Error())
 	}
 
-	_, err = stmt.Exec(id.String(), firstName, lastName, age, gender, interests, city, salt, hash)
+	_, err = stmt.Exec(id.String(), login, firstName, lastName, age, gender, interests, city, salt, hash)
 	if err != nil {
 		return errors.New("failed to create user, error: " + err.Error())
 	}
@@ -55,32 +54,33 @@ func (repository *MysqlUserRepository) Create(id uuid.UUID, firstName string, la
 	return nil
 }
 
-func (repository *MysqlUserRepository) ExistsWithIdAndPassword(id uuid.UUID, password string) (bool, error) {
-	stmt, err := repository.db.Prepare("SELECT password,salt FROM users WHERE id=?")
+func (repository *MysqlUserRepository) ExistsWithLoginAndPassword(login string, password string) (string, error) {
+	stmt, err := repository.db.Prepare("SELECT id,password,salt FROM users WHERE login=?")
 	if err != nil {
-		return false, fmt.Errorf("failed to fetch user, error: %s", err.Error())
+		return "", fmt.Errorf("failed to fetch user, error: %s", err.Error())
 	}
-	rows, err := stmt.Query(id.String())
+	rows, err := stmt.Query(login)
 	if err != nil {
-		return false, fmt.Errorf("failed to fetch user, error: %s", err.Error())
+		return "", fmt.Errorf("failed to fetch user, error: %s", err.Error())
 	}
 	if !rows.Next() {
-		return false, nil
+		return "", domain.UserErrNotFound
 	}
 	var dbPassword []byte
 	var dbSalt []byte
-	if err := rows.Scan(&dbPassword, &dbSalt); err != nil {
-		return false, fmt.Errorf("failed to fetch user, error: %s", err.Error())
+	var id []byte
+	if err := rows.Scan(&id, &dbPassword, &dbSalt); err != nil {
+		return "", fmt.Errorf("failed to fetch user, error: %s", err.Error())
 	}
 	err = bcrypt.CompareHashAndPassword(dbPassword, append([]byte(password), dbSalt...))
 	if err == bcrypt.ErrMismatchedHashAndPassword {
-		return false, nil
+		return "", domain.UserErrNotFound
 	}
 	if err != nil {
-		return false, fmt.Errorf("failed to compare password, error: %s", err.Error())
+		return "", fmt.Errorf("failed to compare password, error: %s", err.Error())
 	}
 
-	return true, nil
+	return string(id), nil
 }
 
 func (repository *MysqlUserRepository) GetAll(filter GetAllFilter) ([]FindAllItem, error) {

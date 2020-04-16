@@ -1,0 +1,3 @@
+ALTER TABLE users ADD login VARCHAR(64) NOT NULL, ADD CONSTRAINT login_unique UNIQUE (login);
+DELETE FROM friends;
+DELETE FROM users;
