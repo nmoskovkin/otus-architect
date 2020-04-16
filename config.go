@@ -18,7 +18,8 @@ func NewConfig() (*Config, error) {
 	if err != nil {
 		return nil, errors.New("failed to load config, error: " + err.Error())
 	}
-	port, err := getEnvAsInt("SOCIAL_PORT")
+	// For heroku app
+	port, err := getEnvAsInt("PORT")
 	if err != nil {
 		return nil, errors.New("failed to load config, error: " + err.Error())
 	}
