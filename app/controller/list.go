@@ -55,7 +55,7 @@ func CreateFriendsListGetHandler(templ *template.Template, db *sql.DB, sessionWr
 			return NewHTTPError(err, 500, "")
 		}
 		list, err := friendsRepository.GetFriends(currentUserUUID)
-		userList, err := userRepository.GetAll(repository.GetAllFilter{Ids: list})
+		userList, err := userRepository.GetAll(repository.GetAllFilter{Ids: list, FilterByIds: true})
 		if err != nil {
 			return NewHTTPError(err, 500, "")
 		}

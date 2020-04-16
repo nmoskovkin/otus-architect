@@ -25,8 +25,9 @@ type FindAllItem struct {
 }
 
 type GetAllFilter struct {
-	Id  string
-	Ids []string
+	Id          string
+	Ids         []string
+	FilterByIds bool
 }
 
 func CreateMysqlUserRepository(db *sql.DB) *MysqlUserRepository {
@@ -99,7 +100,10 @@ func (repository *MysqlUserRepository) GetAll(filter GetAllFilter) ([]FindAllIte
 			args = append(args, id)
 		}
 		wherePart += ")"
+	} else if filter.FilterByIds && len(filter.Ids) == 0 {
+		return []FindAllItem{}, nil
 	}
+
 	stmt, err := repository.db.Prepare("SELECT id,first_name,last_name,age,interests,city,gender FROM users " + wherePart)
 	if err != nil {
 		return []FindAllItem{}, errors.New("failed to fetch user, error: " + err.Error())
