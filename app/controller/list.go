@@ -40,15 +40,17 @@ func CreateListGetHandler(templ *template.Template, db *sql.DB, sessionWrapper h
 func CreateFriendsListGetHandler(templ *template.Template, db *sql.DB, sessionWrapper helpers.SessionWrapper) ErrorReturningHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		isAuth, id, err := sessionWrapper.IsAuthenticated(r)
-		var curentUserId string
+		var currentUserId string
 		if isAuth && err == nil {
-			curentUserId = id
+			currentUserId = id
+		} else {
+			return NewHTTPError(err, 403, "")
 		}
 
 		userRepository := repository.CreateMysqlUserRepository(db)
 		friendsRepository := repository.CreateMysqlFriendsRepository(db)
 
-		currentUserUUID, err := uuid.Parse(curentUserId)
+		currentUserUUID, err := uuid.Parse(currentUserId)
 		if err != nil {
 			return NewHTTPError(err, 500, "")
 		}
@@ -60,7 +62,7 @@ func CreateFriendsListGetHandler(templ *template.Template, db *sql.DB, sessionWr
 		listData := templates.ListData{
 			Users:         userList,
 			PageTitle:     "Friends",
-			CurrentUserId: curentUserId,
+			CurrentUserId: currentUserId,
 		}
 		err = templ.ExecuteTemplate(w, "list.html", listData)
 		if err != nil {

@@ -89,6 +89,15 @@
         .prop-no-flex {
             height: 35px;
         }
+
+        .deny {
+            text-decoration: line-through;
+            color: red;
+        }
+
+        .red {
+            color: red;
+        }
     </style>
 </head>
 <body>
@@ -100,12 +109,12 @@
 </div>
 
 {{ if .CurrentUserId }}
-<div class="bg1 p5 mt10">
+    <div class="bg1 p5 mt10">
 
         Authorized: <b>{{.CurrentUserId}}</b>
         <form action="/logout" method="post" enctype="application/x-www-form-urlencoded">
             <input type="submit" value="Logout">
         </form>
-</div>
+    </div>
 {{ end }}
 <h1>{{.PageTitle}}</h1>
