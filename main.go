@@ -144,6 +144,11 @@ func initRouter(templ *template.Template, db *sql.DB, sessionWrapper helpers.Ses
 		handlerFactory.CreateHandler(controller.CreateFriendsListGetHandler(templ, db, sessionWrapper)).ServeHTTP,
 	).Methods(http.MethodGet)
 
+	router.HandleFunc(
+		"/gen",
+		handlerFactory.CreateHandler(controller.CreateGeneratorGetHandler(templ, db, sessionWrapper)).ServeHTTP,
+	).Methods(http.MethodGet)
+
 	return router
 }
 

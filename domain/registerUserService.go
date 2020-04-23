@@ -19,7 +19,12 @@ type RegisterUserDto struct {
 	Login                string
 }
 
+type RegisterManyUsersDto struct {
+	Users []RegisterUserDto
+}
+
 type RegisterUserService func(dto *RegisterUserDto) (*helper.ValidationResult, string, error)
+type RegisterManyUsersService func(dto *RegisterManyUsersDto) (*helper.ValidationResult, error)
 
 func registerUserValidateDto(dto *RegisterUserDto) *helper.ValidationResult {
 	result := helper.NewValidationResult()
@@ -97,5 +102,48 @@ func CreateRegisterUserService(userModel UserRepository) RegisterUserService {
 		}
 
 		return nil, id.String(), nil
+	}
+}
+
+func CreateRegisterManyUsersService(userModel UserRepository) RegisterManyUsersService {
+	return func(manyUsersDto *RegisterManyUsersDto) (*helper.ValidationResult, error) {
+		items := []CreateManyItem{}
+		for _, dto := range manyUsersDto.Users {
+			validationResult := registerUserValidateDto(&dto)
+			if !validationResult.IsValid() {
+				return validationResult, nil
+			}
+			ageNum, _ := strconv.Atoi(dto.Age)
+			var gender UserGender
+			if dto.Gender == "male" {
+				gender = Male
+			} else if dto.Gender == "female" {
+				gender = Female
+			} else {
+				gender = Other
+			}
+			id, err := uuid.NewUUID()
+			if err != nil {
+				return nil, errors.New("failed to create user, error:" + err.Error())
+			}
+			items = append(items, CreateManyItem{
+				Id:        id,
+				Login:     dto.Login,
+				FirstName: dto.FirstName,
+				LastName:  dto.LastName,
+				Age:       uint8(ageNum),
+				Gender:    gender,
+				Interests: dto.Interests,
+				City:      dto.City,
+				Password:  dto.Password,
+			})
+		}
+
+		err := userModel.CreateMany(items)
+		if err != nil {
+			return nil, errors.New("failed to create user, error:" + err.Error())
+		}
+
+		return nil, nil
 	}
 }

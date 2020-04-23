@@ -54,6 +54,42 @@ func (repository *MysqlUserRepository) Create(id uuid.UUID, login string, firstN
 	return nil
 }
 
+func (repository *MysqlUserRepository) CreateMany(items []domain.CreateManyItem) error {
+	//fmt.Println(items)
+	sql_ := "INSERT INTO users (id, login, first_name, last_name, age,  gender, interests, city, salt, password) VALUES "
+	args := []interface{}{}
+	for i, item := range items {
+		if i > 0 {
+			sql_ += ","
+		}
+		sql_ += "(?,?,?,?,?,?,?,?,?,?)"
+		salt := helpers.RandString(16)
+		hash, err := bcrypt.GenerateFromPassword([]byte(item.Password+salt), 10)
+		if err != nil {
+			return errors.New("failed to create user, error: " + err.Error())
+		}
+		args = append(args, item.Id.String(), item.Login, item.FirstName, item.LastName, item.Age, item.Gender, item.Interests, item.City, salt, hash)
+	}
+
+	//fmt.Println(sql)
+	fmt.Println(sql_)
+	stmt, err := repository.db.Prepare(sql_)
+	fmt.Println(sql_)
+	fmt.Println(err)
+
+	if err != nil {
+		return errors.New("failed to create user, error: " + err.Error())
+	}
+
+	_, err = stmt.Exec(args...)
+	fmt.Println(err)
+	if err != nil {
+		return errors.New("failed to create user, error: " + err.Error())
+	}
+
+	return nil
+}
+
 func (repository *MysqlUserRepository) ExistsWithLoginAndPassword(login string, password string) (string, error) {
 	stmt, err := repository.db.Prepare("SELECT id,password,salt FROM users WHERE login=?")
 	if err != nil {
