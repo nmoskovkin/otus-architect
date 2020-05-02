@@ -28,7 +28,7 @@ func CreateDetailsGetHandler(templ *template.Template, db *sql.DB, sessionWrappe
 
 		userRepository := repository.CreateMysqlUserRepository(db)
 		friendsRepository := repository.CreateMysqlFriendsRepository(db)
-		userList, err := userRepository.GetAll(repository.GetAllFilter{Id: pageUserId})
+		userList, err := userRepository.GetAll(repository.GetAllFilter{Id: pageUserId}, 1, 1)
 		if len(userList) == 0 {
 			return NewHTTPError(fmt.Errorf("user not found"), 404, "")
 		}
@@ -67,7 +67,8 @@ func CreateDetailsPostHandler(templ *template.Template, db *sql.DB, sessionWrapp
 			return NewHTTPError(fmt.Errorf("user not found"), 404, "")
 		}
 		userRepository := repository.CreateMysqlUserRepository(db)
-		userList, err := userRepository.GetAll(repository.GetAllFilter{Id: pageUserId})
+		// TODO replace with a call of correct function, e.g. Get()
+		userList, err := userRepository.GetAll(repository.GetAllFilter{Id: pageUserId}, 1, 1)
 		if len(userList) == 0 {
 			return NewHTTPError(fmt.Errorf("user not found"), 404, "")
 		}

@@ -4,6 +4,9 @@ import (
 	"architectSocial/domain"
 	"bufio"
 	"encoding/csv"
+	"math"
+	"strings"
+
 	//"encoding/csv"
 	"github.com/google/uuid"
 	"math/rand"
@@ -13,7 +16,7 @@ import (
 
 type RandomUserGenerator func(count int) error
 
-const CountOfItemsToFlush = 2
+const CountOfItemsToFlush = 100
 
 type RandomGeneratorOutput func(i int)
 
@@ -72,7 +75,7 @@ func CreateRandomUserGenerator(output RandomGeneratorOutput, saver RandomSaver) 
 				fIter = 0
 			}
 
-			return v
+			return strings.TrimRight(v, "\n")
 		}
 		getLastNameName := func() string {
 			v, _ := bfl.ReadString('\n')
@@ -83,7 +86,7 @@ func CreateRandomUserGenerator(output RandomGeneratorOutput, saver RandomSaver) 
 				lIter = 0
 			}
 
-			return v
+			return strings.TrimRight(v, "\n")
 		}
 		var getCity func() string
 		getCity = func() string {
@@ -98,7 +101,7 @@ func CreateRandomUserGenerator(output RandomGeneratorOutput, saver RandomSaver) 
 				return getCity()
 			}
 
-			return v[0]
+			return strings.TrimRight(v[0], "\n")
 		}
 		var getText func() string
 		getText = func() string {
@@ -109,32 +112,21 @@ func CreateRandomUserGenerator(output RandomGeneratorOutput, saver RandomSaver) 
 				bft = csv.NewReader(t)
 				tIter = 0
 			}
-			if len(v) == 0 {
+			if len(v[1]) == 0 {
 				return getText()
 			}
-			return v[1]
+			runes := []rune(v[1])
+
+			vv := runes[:int(math.Min(float64(len(runes)), 240))]
+
+			return strings.TrimRight(string(vv), "\n")
 		}
 
-		//if errF != nil && errL != nil && errC != nil && errT != nil {
-		//	return "", fmt.Printf("unable to read one of the files")
-		//}
-		//firstName := func(fn) {
-		//	f, err := os.Open(fn)
-		//	if err != nil {
-		//		return "", err
-		//	}
-		//	defer f.Close()
-		//}
 		genderValues := []string{
 			"male",
 			"female",
 		}
 		randomUser := func(i int) domain.RegisterUserDto {
-			//firstName, _ := ReadLineFromFile("data/first_names.all.txt", rand.Intn(164460))
-			//lastName, _ := ReadLineFromFile("data/last_names.all.txt", rand.Intn(98391))
-			//city, _ := ReadCsvCellFromFile("data/world-cities.csv", rand.Intn(23019), 0)
-			//text, _ := ReadCsvCellFromFile("data/bbc-text.csv", rand.Intn(2225), 1)
-
 			return domain.RegisterUserDto{
 				FirstName:            getFirstName(),
 				LastName:             getLastNameName(),
@@ -142,9 +134,9 @@ func CreateRandomUserGenerator(output RandomGeneratorOutput, saver RandomSaver) 
 				Gender:               genderValues[rand.Intn(2)],
 				Interests:            getText(),
 				City:                 getCity(),
-				Password:             "Test" + strconv.Itoa(i),
-				PasswordConfirmation: "Test" + strconv.Itoa(i),
-				Login:                "Test" + strconv.Itoa(i),
+				Password:             "asdf" + strconv.Itoa(i),
+				PasswordConfirmation: "asdf" + strconv.Itoa(i),
+				Login:                "asdf" + strconv.Itoa(i),
 			}
 		}
 

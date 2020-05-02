@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"time"
 )
 
 type MysqlUserRepository struct {
@@ -28,6 +29,7 @@ type GetAllFilter struct {
 	Id          string
 	Ids         []string
 	FilterByIds bool
+	Query       string
 }
 
 func CreateMysqlUserRepository(db *sql.DB) *MysqlUserRepository {
@@ -35,6 +37,7 @@ func CreateMysqlUserRepository(db *sql.DB) *MysqlUserRepository {
 }
 
 func (repository *MysqlUserRepository) Create(id uuid.UUID, login string, firstName string, lastName string, age uint8, gender domain.UserGender, interests string, city string, password string) error {
+
 	stmt, err := repository.db.Prepare("INSERT INTO users (id, login, first_name, last_name, age,  gender, interests, city, salt, password) VALUES (?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		return errors.New("failed to create user, error: " + err.Error())
@@ -55,6 +58,15 @@ func (repository *MysqlUserRepository) Create(id uuid.UUID, login string, firstN
 }
 
 func (repository *MysqlUserRepository) CreateMany(items []domain.CreateManyItem) error {
+	t := time.Now()
+	formatted := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
+		t.Year(), t.Month(), t.Day(),
+		t.Hour(), t.Minute(), t.Second())
+	fmt.Printf("Start: %s\n", formatted)
+	if len(items) == 0 {
+		return nil
+	}
+
 	//fmt.Println(items)
 	sql_ := "INSERT INTO users (id, login, first_name, last_name, age,  gender, interests, city, salt, password) VALUES "
 	args := []interface{}{}
@@ -64,7 +76,7 @@ func (repository *MysqlUserRepository) CreateMany(items []domain.CreateManyItem)
 		}
 		sql_ += "(?,?,?,?,?,?,?,?,?,?)"
 		salt := helpers.RandString(16)
-		hash, err := bcrypt.GenerateFromPassword([]byte(item.Password+salt), 10)
+		hash, err := bcrypt.GenerateFromPassword([]byte(item.Password+salt), 1)
 		if err != nil {
 			return errors.New("failed to create user, error: " + err.Error())
 		}
@@ -72,20 +84,28 @@ func (repository *MysqlUserRepository) CreateMany(items []domain.CreateManyItem)
 	}
 
 	//fmt.Println(sql)
-	fmt.Println(sql_)
+	//fmt.Println(sql_)
 	stmt, err := repository.db.Prepare(sql_)
-	fmt.Println(sql_)
-	fmt.Println(err)
+	//fmt.Println(sql_)
 
 	if err != nil {
+		panic(err)
 		return errors.New("failed to create user, error: " + err.Error())
 	}
 
 	_, err = stmt.Exec(args...)
-	fmt.Println(err)
+	//fmt.Println(err)
+
 	if err != nil {
+		panic(err)
 		return errors.New("failed to create user, error: " + err.Error())
 	}
+	t = time.Now()
+	formatted = fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
+		t.Year(), t.Month(), t.Day(),
+		t.Hour(), t.Minute(), t.Second())
+	fmt.Println(formatted)
+	fmt.Printf("End: %s\n", formatted)
 
 	return nil
 }
@@ -119,7 +139,7 @@ func (repository *MysqlUserRepository) ExistsWithLoginAndPassword(login string, 
 	return string(id), nil
 }
 
-func (repository *MysqlUserRepository) GetAll(filter GetAllFilter) ([]FindAllItem, error) {
+func (repository *MysqlUserRepository) GetAll(filter GetAllFilter, from int, count int) ([]FindAllItem, error) {
 	wherePart := ""
 	args := []interface{}{}
 	if filter.Id != "" {
@@ -138,12 +158,17 @@ func (repository *MysqlUserRepository) GetAll(filter GetAllFilter) ([]FindAllIte
 		wherePart += ")"
 	} else if filter.FilterByIds && len(filter.Ids) == 0 {
 		return []FindAllItem{}, nil
+	} else if filter.Query != "" {
+		wherePart = "WHERE first_name LIKE ? OR last_name LIKE ?"
+		args = append(args, filter.Query+"%", filter.Query+"%")
 	}
 
-	stmt, err := repository.db.Prepare("SELECT id,first_name,last_name,age,interests,city,gender FROM users " + wherePart)
+	stmt, err := repository.db.Prepare("SELECT id,first_name,last_name,age,interests,city,gender FROM users " + wherePart + " LIMIT ?,?")
 	if err != nil {
 		return []FindAllItem{}, errors.New("failed to fetch user, error: " + err.Error())
 	}
+
+	args = append(args, from, count)
 	rows, err := stmt.Query(args...)
 	if err != nil {
 		return []FindAllItem{}, errors.New("failed to fetch user, error: " + err.Error())

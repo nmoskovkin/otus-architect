@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"html/template"
 	"net/http"
+	"strconv"
 )
 
 func CreateListGetHandler(templ *template.Template, db *sql.DB, sessionWrapper helpers.SessionWrapper) ErrorReturningHandlerFunc {
@@ -18,8 +19,27 @@ func CreateListGetHandler(templ *template.Template, db *sql.DB, sessionWrapper h
 			curentUserId = id
 		}
 
+		fromStr := r.URL.Query().Get("from")
+		toStr := r.URL.Query().Get("to")
+
+		from := 0
+		count := 100
+		if fromStr != "" {
+			val, err := strconv.Atoi(fromStr)
+			if err == nil {
+				from = val
+			}
+		}
+		if toStr != "" {
+			val, err := strconv.Atoi(toStr)
+			if err == nil {
+				count = val
+			}
+		}
+		query := r.URL.Query().Get("query")
+
 		userRepository := repository.CreateMysqlUserRepository(db)
-		userList, err := userRepository.GetAll(repository.GetAllFilter{})
+		userList, err := userRepository.GetAll(repository.GetAllFilter{Query: query}, from, count)
 		if err != nil {
 			return NewHTTPError(err, 500, "")
 		}
@@ -55,7 +75,7 @@ func CreateFriendsListGetHandler(templ *template.Template, db *sql.DB, sessionWr
 			return NewHTTPError(err, 500, "")
 		}
 		list, err := friendsRepository.GetFriends(currentUserUUID)
-		userList, err := userRepository.GetAll(repository.GetAllFilter{Ids: list, FilterByIds: true})
+		userList, err := userRepository.GetAll(repository.GetAllFilter{Ids: list, FilterByIds: true}, 0, 100)
 		if err != nil {
 			return NewHTTPError(err, 500, "")
 		}
