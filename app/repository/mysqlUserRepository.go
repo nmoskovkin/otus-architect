@@ -163,7 +163,7 @@ func (repository *MysqlUserRepository) GetAll(filter GetAllFilter, from int, cou
 		args = append(args, filter.Query+"%", filter.Query+"%")
 	}
 
-	stmt, err := repository.db.Prepare("SELECT id,first_name,last_name,age,interests,city,gender FROM users " + wherePart + " LIMIT ?,?")
+	stmt, err := repository.db.Prepare("SELECT id,first_name,last_name,age,interests,city,gender FROM users " + wherePart + " ORDER BY id LIMIT ?,?")
 	if err != nil {
 		return []FindAllItem{}, errors.New("failed to fetch user, error: " + err.Error())
 	}
