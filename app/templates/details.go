@@ -4,7 +4,7 @@ import "architectSocial/app/repository"
 
 type DetailsData struct {
 	PageTitle       string
-	User            repository.FindAllItem
+	User            repository.UserItem
 	IsAlreadyFriend bool
 	Errors          []string
 	CurrentUserId   string

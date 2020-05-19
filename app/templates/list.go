@@ -4,6 +4,6 @@ import "architectSocial/app/repository"
 
 type ListData struct {
 	PageTitle     string
-	Users         []repository.FindAllItem
+	Users         []repository.UserItem
 	CurrentUserId string
 }

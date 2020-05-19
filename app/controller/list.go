@@ -36,10 +36,12 @@ func CreateListGetHandler(templ *template.Template, db *sql.DB, sessionWrapper h
 				count = val
 			}
 		}
-		query := r.URL.Query().Get("query")
-
 		userRepository := repository.CreateMysqlUserRepository(db)
-		userList, err := userRepository.GetAll(repository.GetAllFilter{Query: query}, from, count)
+		listParams := repository.CreateListParams()
+		listParams.Filter.Query = r.URL.Query().Get("query")
+		listParams.Offset = from
+		listParams.Limit = count
+		userList, err := userRepository.GetAll(listParams)
 		if err != nil {
 			return NewHTTPError(err, 500, "")
 		}
@@ -75,7 +77,7 @@ func CreateFriendsListGetHandler(templ *template.Template, db *sql.DB, sessionWr
 			return NewHTTPError(err, 500, "")
 		}
 		list, err := friendsRepository.GetFriends(currentUserUUID)
-		userList, err := userRepository.GetAll(repository.GetAllFilter{Ids: list, FilterByIds: true}, 0, 100)
+		userList, err := userRepository.GetByIds(list)
 		if err != nil {
 			return NewHTTPError(err, 500, "")
 		}

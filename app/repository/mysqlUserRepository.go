@@ -8,14 +8,13 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
-	"time"
 )
 
 type MysqlUserRepository struct {
 	db *sql.DB
 }
 
-type FindAllItem struct {
+type UserItem struct {
 	Id        string
 	FirstName string
 	LastName  string
@@ -25,11 +24,44 @@ type FindAllItem struct {
 	Gender    uint8
 }
 
-type GetAllFilter struct {
-	Id          string
-	Ids         []string
-	FilterByIds bool
-	Query       string
+type ListFilter struct {
+	Query string
+}
+
+type ListParams struct {
+	Filter ListFilter
+	Offset int
+	Limit  int
+}
+
+func (params *ListFilter) Validate() error {
+	if len([]rune(params.Query)) > 15 {
+		return errors.New("invalid query")
+	}
+	return nil
+}
+
+func (params *ListParams) Validate() error {
+	err := params.Filter.Validate()
+	if err != nil {
+		return fmt.Errorf("invalid filter: %s", err.Error())
+	}
+	if params.Limit < 0 {
+		return fmt.Errorf("invalid limit")
+	}
+	if params.Offset < 0 {
+		return fmt.Errorf("invalid from")
+	}
+
+	return nil
+}
+
+func CreateListParams() *ListParams {
+	return &ListParams{
+		Filter: ListFilter{},
+		Offset: 0,
+		Limit:  15,
+	}
 }
 
 func CreateMysqlUserRepository(db *sql.DB) *MysqlUserRepository {
@@ -37,7 +69,6 @@ func CreateMysqlUserRepository(db *sql.DB) *MysqlUserRepository {
 }
 
 func (repository *MysqlUserRepository) Create(id uuid.UUID, login string, firstName string, lastName string, age uint8, gender domain.UserGender, interests string, city string, password string) error {
-
 	stmt, err := repository.db.Prepare("INSERT INTO users (id, login, first_name, last_name, age,  gender, interests, city, salt, password) VALUES (?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		return errors.New("failed to create user, error: " + err.Error())
@@ -58,16 +89,10 @@ func (repository *MysqlUserRepository) Create(id uuid.UUID, login string, firstN
 }
 
 func (repository *MysqlUserRepository) CreateMany(items []domain.CreateManyItem) error {
-	t := time.Now()
-	formatted := fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
-		t.Year(), t.Month(), t.Day(),
-		t.Hour(), t.Minute(), t.Second())
-	fmt.Printf("Start: %s\n", formatted)
 	if len(items) == 0 {
 		return nil
 	}
 
-	//fmt.Println(items)
 	sql_ := "INSERT INTO users (id, login, first_name, last_name, age,  gender, interests, city, salt, password) VALUES "
 	args := []interface{}{}
 	for i, item := range items {
@@ -83,29 +108,17 @@ func (repository *MysqlUserRepository) CreateMany(items []domain.CreateManyItem)
 		args = append(args, item.Id.String(), item.Login, item.FirstName, item.LastName, item.Age, item.Gender, item.Interests, item.City, salt, hash)
 	}
 
-	//fmt.Println(sql)
-	//fmt.Println(sql_)
 	stmt, err := repository.db.Prepare(sql_)
-	//fmt.Println(sql_)
-
 	if err != nil {
 		panic(err)
 		return errors.New("failed to create user, error: " + err.Error())
 	}
 
 	_, err = stmt.Exec(args...)
-	//fmt.Println(err)
-
 	if err != nil {
 		panic(err)
 		return errors.New("failed to create user, error: " + err.Error())
 	}
-	t = time.Now()
-	formatted = fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02d",
-		t.Year(), t.Month(), t.Day(),
-		t.Hour(), t.Minute(), t.Second())
-	fmt.Println(formatted)
-	fmt.Printf("End: %s\n", formatted)
 
 	return nil
 }
@@ -139,46 +152,74 @@ func (repository *MysqlUserRepository) ExistsWithLoginAndPassword(login string, 
 	return string(id), nil
 }
 
-func (repository *MysqlUserRepository) GetAll(filter GetAllFilter, from int, count int) ([]FindAllItem, error) {
-	wherePart := ""
-	args := []interface{}{}
-	if filter.Id != "" {
-		// Query builder :(
-		args = append(args, filter.Id)
-		wherePart = "WHERE id=?"
-	} else if len(filter.Ids) > 0 {
-		wherePart = "WHERE id IN ("
-		for i, id := range filter.Ids {
-			if i > 0 {
-				wherePart += ","
-			}
-			wherePart += "?"
-			args = append(args, id)
+func (repository *MysqlUserRepository) GetByIds(ids []string) ([]UserItem, error) {
+	wherePart := "WHERE id IN ("
+	var args []interface{}
+	for i, id := range ids {
+		if i > 0 {
+			wherePart += ","
 		}
-		wherePart += ")"
-	} else if filter.FilterByIds && len(filter.Ids) == 0 {
-		return []FindAllItem{}, nil
-	} else if filter.Query != "" {
-		wherePart = "WHERE first_name LIKE ? OR last_name LIKE ?"
-		args = append(args, filter.Query+"%", filter.Query+"%")
+		wherePart += "?"
+		args = append(args, id)
 	}
+	wherePart += ")"
 
-	stmt, err := repository.db.Prepare("SELECT id,first_name,last_name,age,interests,city,gender FROM users " + wherePart + " ORDER BY id LIMIT ?,?")
+	stmt, err := repository.db.Prepare("SELECT id,first_name,last_name,age,interests,city,gender FROM users " + wherePart + " ORDER BY id")
 	if err != nil {
-		return []FindAllItem{}, errors.New("failed to fetch user, error: " + err.Error())
+		return []UserItem{}, errors.New("failed to fetch user, error: " + err.Error())
 	}
-
-	args = append(args, from, count)
+	args = append(args)
 	rows, err := stmt.Query(args...)
 	if err != nil {
-		return []FindAllItem{}, errors.New("failed to fetch user, error: " + err.Error())
+		return []UserItem{}, errors.New("failed to fetch user, error: " + err.Error())
 	}
 
-	var result []FindAllItem
+	var result []UserItem
 	for rows.Next() {
-		item := FindAllItem{}
+		item := UserItem{}
 		if err := rows.Scan(&item.Id, &item.FirstName, &item.LastName, &item.Age, &item.Interests, &item.City, &item.Gender); err != nil {
-			return []FindAllItem{}, err
+			return []UserItem{}, err
+		}
+
+		result = append(result, item)
+	}
+
+	return result, nil
+}
+
+func (repository *MysqlUserRepository) GetAll(params *ListParams) ([]UserItem, error) {
+	err := params.Validate()
+	if err != nil {
+		return []UserItem{}, fmt.Errorf("invalid params: %s", err.Error())
+	}
+	var query string
+	var args []interface{}
+	if len([]rune(params.Filter.Query)) == 0 {
+		query = "SELECT id,first_name,last_name,age,interests,city,gender FROM users ORDER BY id LIMIT ?,?"
+		args = append(args, params.Offset, params.Limit)
+	} else {
+		query = "(SELECT id,first_name,last_name,age,interests,city,gender " +
+			"FROM users  WHERE first_name like ? order by id LIMIT ?) " +
+			"UNION ALL" +
+			"(SELECT id,first_name,last_name,age,interests,city,gender " +
+			"FROM users  WHERE last_name like ? order by id LIMIT ?) " +
+			"ORDER BY id LIMIT ?;"
+		args = append(args, params.Filter.Query+"%", params.Limit, params.Filter.Query+"%", params.Limit, params.Limit)
+	}
+	stmt, err := repository.db.Prepare(query)
+	if err != nil {
+		return []UserItem{}, errors.New("failed to fetch user, error: " + err.Error())
+	}
+	rows, err := stmt.Query(args...)
+	if err != nil {
+		return []UserItem{}, errors.New("failed to fetch user, error: " + err.Error())
+	}
+
+	var result []UserItem
+	for rows.Next() {
+		item := UserItem{}
+		if err := rows.Scan(&item.Id, &item.FirstName, &item.LastName, &item.Age, &item.Interests, &item.City, &item.Gender); err != nil {
+			return []UserItem{}, err
 		}
 
 		result = append(result, item)
