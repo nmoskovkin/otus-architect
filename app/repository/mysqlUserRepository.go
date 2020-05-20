@@ -198,7 +198,7 @@ func (repository *MysqlUserRepository) GetAll(params *ListParams) ([]UserItem, e
 		query = "SELECT id,first_name,last_name,age,interests,city,gender FROM users ORDER BY id LIMIT ?,?"
 		args = append(args, params.Offset, params.Limit)
 	} else {
-		query = "SELECT id,first_name,last_name,age,interests,city,gender FROM users WHERE id IN (SELECT id FROM users WHERE first_name LIKE ? )  AND id IN (SELECT id FROM users WHERE last_name LIKE ?) ORDER BY id LIMIT ?"
+		query = "SELECT id,first_name,last_name,age,interests,city,gender FROM users WHERE first_name like ? AND last_name like ? ORDER BY id LIMIT ?"
 		args = append(args, params.Filter.Query+"%", params.Filter.Query+"%", params.Limit)
 	}
 	stmt, err := repository.db.Prepare(query)
