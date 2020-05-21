@@ -1,0 +1,1 @@
+DROP INDEX idx1 on users;

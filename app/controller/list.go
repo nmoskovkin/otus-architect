@@ -14,9 +14,9 @@ import (
 func CreateListGetHandler(templ *template.Template, db *sql.DB, sessionWrapper helpers.SessionWrapper) ErrorReturningHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		isAuth, id, err := sessionWrapper.IsAuthenticated(r)
-		var curentUserId string
+		var currentUserId string
 		if isAuth && err == nil {
-			curentUserId = id
+			currentUserId = id
 		}
 
 		fromStr := r.URL.Query().Get("from")
@@ -48,7 +48,8 @@ func CreateListGetHandler(templ *template.Template, db *sql.DB, sessionWrapper h
 		listData := templates.ListData{
 			Users:         userList,
 			PageTitle:     "All People",
-			CurrentUserId: curentUserId,
+			CurrentUserId: currentUserId,
+			ShowSearch:    true,
 		}
 		err = templ.ExecuteTemplate(w, "list.html", listData)
 		if err != nil {
@@ -77,14 +78,20 @@ func CreateFriendsListGetHandler(templ *template.Template, db *sql.DB, sessionWr
 			return NewHTTPError(err, 500, "")
 		}
 		list, err := friendsRepository.GetFriends(currentUserUUID)
-		userList, err := userRepository.GetByIds(list)
-		if err != nil {
-			return NewHTTPError(err, 500, "")
+
+		var userList []repository.UserItem
+		if len(list) > 0 {
+			userList, err = userRepository.GetByIds(list)
+			if err != nil {
+				return NewHTTPError(err, 500, "")
+			}
 		}
+
 		listData := templates.ListData{
 			Users:         userList,
 			PageTitle:     "Friends",
 			CurrentUserId: currentUserId,
+			ShowSearch:    false,
 		}
 		err = templ.ExecuteTemplate(w, "list.html", listData)
 		if err != nil {

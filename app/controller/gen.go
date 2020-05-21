@@ -8,86 +8,61 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"sync"
 )
 
-func debug(dto domain.RegisterUserDto) {
-	fmt.Println("----")
-	fmt.Printf("firstName: %s\n", dto.FirstName)
-	fmt.Printf("lastName: %s\n", dto.LastName)
-	fmt.Printf("age: %s\n", dto.Age)
-	fmt.Printf("city: %s\n", dto.City)
-	fmt.Printf("login: %s\n", dto.Login)
-	fmt.Printf("gender: %s\n", dto.Gender)
-	fmt.Printf("password: %s\n", dto.Password)
-	fmt.Printf("passwordConf: %s\n", dto.PasswordConfirmation)
-	fmt.Printf("interests: %s\n", dto.Interests)
-
-	fmt.Println("----")
-}
-
-func debugMany(dtos []domain.RegisterUserDto) {
-	for _, r := range dtos {
-		debug(r)
-	}
-}
-
-func createGenFunc(in chan []domain.RegisterUserDto, registerManyUsersService domain.RegisterManyUsersService) {
-	f := func(in chan []domain.RegisterUserDto) {
-		for users := range in {
-			//debugMany(users)
-			validationResult, err := registerManyUsersService(&domain.RegisterManyUsersDto{
-				Users: users,
-			})
-			//if !validationResult.IsValid() {
-			//	panic(fmt.Sprintln(validationResult))
-			//}
-			if err != nil {
-				fmt.Println(err)
-				//w.Write([]byte(err.Error()))
-			}
-			if err != nil && validationResult != nil && !validationResult.IsValid() {
-				fmt.Println(err)
-				//w.Write([]byte("Invalid"))
-			}
-		}
-	}
-
-	go f(in)
-}
-
 func CreateGeneratorGetHandler(templ *template.Template, db *sql.DB, sessionWrapper helpers.SessionWrapper) ErrorReturningHandlerFunc {
+	mutex := sync.Mutex{}
+
 	return func(w http.ResponseWriter, r *http.Request) error {
-		isAuth, _, err := sessionWrapper.IsAuthenticated(r)
-		if err != nil {
-			return NewHTTPError(err, 500, "")
-		}
-		if !isAuth {
-			return NewHTTPError(fmt.Errorf("forbidden"), 403, "")
-		}
+		mutex.Lock()
+		fmt.Fprintln(w, "queued")
+		dg := helpers.CreateRandomUserGenerator("u", 0)
+		channel := make(chan []domain.RegisterUserDto)
+		doneChannel := make(chan bool)
 		registerService := domain.CreateRegisterManyUsersService(repository.CreateMysqlUserRepository(db))
-		in := make(chan []domain.RegisterUserDto)
-		defer close(in)
+		counterMutex := sync.Mutex{}
+		counter := 0
 
-		createGenFunc(in, registerService)
-		createGenFunc(in, registerService)
-		//createGenFunc(in, registerService)
-		//createGenFunc(in, registerService)
+		addCounter := func(v int) {
+			counterMutex.Lock()
+			counter += v
+			if counter%100 == 0 {
+				fmt.Printf("Counter: %d\n", counter)
+			}
 
-		c := 0
-		// Incorrect behaviour
-		// Data are generated but sql queries aren't waited for finish.
-		generator := helpers.CreateRandomUserGenerator(func(i int) {
-			_, _ = w.Write([]byte(fmt.Sprintf("Completed: %d", i)))
-		}, func(users []domain.RegisterUserDto) {
-			c += len(users)
-			fmt.Printf("C: %d\n\n\n", c)
-			//debugMany(users)
-			in <- users
-		})
-		err = generator(1000000)
-		if err != nil {
-			return NewHTTPError(err, 500, "")
+			counterMutex.Unlock()
 		}
+
+		worker := func(channel chan []domain.RegisterUserDto, doneChannel chan bool) {
+			for v := range channel {
+				validationResult, err := registerService(&domain.RegisterManyUsersDto{Users: v})
+				if validationResult != nil && !validationResult.IsValid() {
+					fmt.Printf("generate user error: validation failed %v\n", validationResult.GetAllErrors())
+					continue
+				}
+				if err != nil {
+					fmt.Printf("generate user error: %s\n", err.Error())
+					continue
+				}
+
+				addCounter(len(v))
+			}
+			doneChannel <- true
+		}
+
+		go dg.Generate(channel, 1000, 4000)
+		workerCount := 4
+
+		for i := 0; i < workerCount; i++ {
+			go worker(channel, doneChannel)
+		}
+		go func() {
+			for i := 0; i < workerCount; i++ {
+				<-doneChannel
+			}
+			mutex.Unlock()
+		}()
 
 		return nil
 	}

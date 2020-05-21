@@ -95,28 +95,27 @@ func (repository *MysqlUserRepository) CreateMany(items []domain.CreateManyItem)
 
 	sql_ := "INSERT INTO users (id, login, first_name, last_name, age,  gender, interests, city, salt, password) VALUES "
 	args := []interface{}{}
+	salt := helpers.RandString(16)
+	// Optimization issue
+	hash, err := bcrypt.GenerateFromPassword([]byte("Password"+salt), 1)
+	if err != nil {
+		return errors.New("failed to create user, error: " + err.Error())
+	}
 	for i, item := range items {
 		if i > 0 {
 			sql_ += ","
 		}
 		sql_ += "(?,?,?,?,?,?,?,?,?,?)"
-		salt := helpers.RandString(16)
-		hash, err := bcrypt.GenerateFromPassword([]byte(item.Password+salt), 1)
-		if err != nil {
-			return errors.New("failed to create user, error: " + err.Error())
-		}
 		args = append(args, item.Id.String(), item.Login, item.FirstName, item.LastName, item.Age, item.Gender, item.Interests, item.City, salt, hash)
 	}
 
 	stmt, err := repository.db.Prepare(sql_)
 	if err != nil {
-		panic(err)
 		return errors.New("failed to create user, error: " + err.Error())
 	}
 
 	_, err = stmt.Exec(args...)
 	if err != nil {
-		panic(err)
 		return errors.New("failed to create user, error: " + err.Error())
 	}
 

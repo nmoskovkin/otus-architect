@@ -102,6 +102,7 @@
 </head>
 <body>
 <div>
+    <a href="/">Main</a>
     <a href="/list">All People</a>
     {{ if .CurrentUserId }}<a href="/friends">Friends</a>{{end}}
     {{ if not .CurrentUserId }} <a href="/register">Register</a>{{end}}

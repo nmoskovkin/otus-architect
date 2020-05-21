@@ -1,0 +1,22 @@
+{{ template "header.html" . }}
+<div class="grid">
+    <div>
+        <h2>Popular cities</h2>
+        <table>
+            <tr><th>Name</th><th>Count of user</th></tr>
+            {{range $city := .MostPopularCities}}
+                <tr><td>{{$city.Name}}</td><td>{{$city.Count}}</td></tr>
+            {{end}}
+        </table>
+    </div>
+    <div>
+        <h2>Popular firstNames</h2>
+        <table>
+            <tr><th>Name</th><th>Count of user</th></tr>
+            {{range $firstName:= .MostPopularFirstNames}}
+                <tr><td>{{$firstName.Name}}</td><td>{{$firstName.Count}}</td></tr>
+            {{end}}
+        </table>
+    </div>
+</div>
+{{ template "footer.html" . }}

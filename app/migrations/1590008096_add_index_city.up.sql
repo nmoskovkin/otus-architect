@@ -1,0 +1,1 @@
+CREATE INDEX idx2 ON users(city);

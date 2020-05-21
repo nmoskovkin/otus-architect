@@ -95,9 +95,7 @@ func initRouter(templ *template.Template, db *sql.DB, sessionWrapper helpers.Ses
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/list", 302)
-	})
+	router.HandleFunc("/", handlerFactory.CreateHandler(controller.CreateMainGetHandler(templ, db, sessionWrapper)).ServeHTTP)
 
 	router.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
 		_ = sessionWrapper.Clear(r, w)
