@@ -19,12 +19,14 @@ import (
 func main() {
 	loadEnvFile()
 	config := createConfigFromEnvVars()
-	db := establishDbConnection(config.MysqlDSN)
-	defer db.Close()
-	migrateDatabase(db, "app/migrations")
+	dbMaster := establishDbConnection(config.MysqlDSN)
+	dbSlave := establishDbConnection(config.MysqlDSNSlave)
+	defer dbMaster.Close()
+	defer dbSlave.Close()
+	migrateDatabase(dbMaster, "app/migrations")
 	templ := registerHtmlTemplates("app/templates")
 	sessionWrapper := initSessionStore(config.SessionKey)
-	router := initRouter(templ, db, sessionWrapper)
+	router := initRouter(templ, dbMaster, dbSlave, sessionWrapper)
 	startWebServer(router, config.Port)
 }
 
@@ -90,12 +92,12 @@ func initSessionStore(sessionKey string) helpers.SessionWrapper {
 	return helpers.NewGorillaSessionWrapper(store)
 }
 
-func initRouter(templ *template.Template, db *sql.DB, sessionWrapper helpers.SessionWrapper) *mux.Router {
+func initRouter(templ *template.Template, dbMaster *sql.DB, dbSlave *sql.DB, sessionWrapper helpers.SessionWrapper) *mux.Router {
 	handlerFactory := controller.NewHandlerFactory(templ)
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/", handlerFactory.CreateHandler(controller.CreateMainGetHandler(templ, db, sessionWrapper)).ServeHTTP)
+	router.HandleFunc("/", handlerFactory.CreateHandler(controller.CreateMainGetHandler(templ, dbMaster, dbSlave, sessionWrapper)).ServeHTTP)
 
 	router.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
 		_ = sessionWrapper.Clear(r, w)
@@ -109,7 +111,7 @@ func initRouter(templ *template.Template, db *sql.DB, sessionWrapper helpers.Ses
 
 	router.HandleFunc(
 		"/register",
-		handlerFactory.CreateHandler(controller.CreateRegisterPostHandler(templ, db, sessionWrapper)).ServeHTTP,
+		handlerFactory.CreateHandler(controller.CreateRegisterPostHandler(templ, dbMaster, sessionWrapper)).ServeHTTP,
 	).Methods(http.MethodPost)
 
 	router.HandleFunc(
@@ -119,32 +121,32 @@ func initRouter(templ *template.Template, db *sql.DB, sessionWrapper helpers.Ses
 
 	router.HandleFunc(
 		"/auth",
-		handlerFactory.CreateHandler(controller.CreateAuthPostHandler(templ, db, sessionWrapper)).ServeHTTP,
+		handlerFactory.CreateHandler(controller.CreateAuthPostHandler(templ, dbMaster, sessionWrapper)).ServeHTTP,
 	).Methods(http.MethodPost)
 
 	router.HandleFunc(
 		"/list",
-		handlerFactory.CreateHandler(controller.CreateListGetHandler(templ, db, sessionWrapper)).ServeHTTP,
+		handlerFactory.CreateHandler(controller.CreateListGetHandler(templ, dbMaster, sessionWrapper)).ServeHTTP,
 	).Methods(http.MethodGet)
 
 	router.HandleFunc(
 		"/details",
-		handlerFactory.CreateHandler(controller.CreateDetailsGetHandler(templ, db, sessionWrapper)).ServeHTTP,
+		handlerFactory.CreateHandler(controller.CreateDetailsGetHandler(templ, dbMaster, sessionWrapper)).ServeHTTP,
 	).Methods(http.MethodGet)
 
 	router.HandleFunc(
 		"/details",
-		handlerFactory.CreateHandler(controller.CreateDetailsPostHandler(templ, db, sessionWrapper)).ServeHTTP,
+		handlerFactory.CreateHandler(controller.CreateDetailsPostHandler(templ, dbMaster, sessionWrapper)).ServeHTTP,
 	).Methods(http.MethodPost)
 
 	router.HandleFunc(
 		"/friends",
-		handlerFactory.CreateHandler(controller.CreateFriendsListGetHandler(templ, db, sessionWrapper)).ServeHTTP,
+		handlerFactory.CreateHandler(controller.CreateFriendsListGetHandler(templ, dbMaster, sessionWrapper)).ServeHTTP,
 	).Methods(http.MethodGet)
 
 	router.HandleFunc(
 		"/gen",
-		handlerFactory.CreateHandler(controller.CreateGeneratorGetHandler(templ, db, sessionWrapper)).ServeHTTP,
+		handlerFactory.CreateHandler(controller.CreateGeneratorGetHandler(templ, dbMaster, sessionWrapper)).ServeHTTP,
 	).Methods(http.MethodGet)
 
 	return router

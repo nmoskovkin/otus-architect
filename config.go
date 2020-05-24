@@ -8,13 +8,18 @@ import (
 )
 
 type Config struct {
-	Port       uint16
-	MysqlDSN   string
-	SessionKey string
+	Port          uint16
+	MysqlDSN      string
+	MysqlDSNSlave string
+	SessionKey    string
 }
 
 func NewConfig() (*Config, error) {
 	mysqlDsn, err := getEnv("SOCIAL_MYSQL_DSN")
+	if err != nil {
+		return nil, errors.New("failed to load config, error: " + err.Error())
+	}
+	mysqlDsnSlave, err := getEnv("SOCIAL_MYSQL_DSN_SLAVE")
 	if err != nil {
 		return nil, errors.New("failed to load config, error: " + err.Error())
 	}
@@ -31,9 +36,10 @@ func NewConfig() (*Config, error) {
 		return nil, errors.New("failed to load config, error: " + err.Error())
 	}
 	return &Config{
-		Port:       uint16(port),
-		MysqlDSN:   mysqlDsn,
-		SessionKey: sessionKey,
+		Port:          uint16(port),
+		MysqlDSN:      mysqlDsn,
+		SessionKey:    sessionKey,
+		MysqlDSNSlave: mysqlDsnSlave,
 	}, nil
 }
 

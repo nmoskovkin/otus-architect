@@ -8,15 +8,23 @@ import (
 	"net/http"
 )
 
-func CreateMainGetHandler(templ *template.Template, db *sql.DB, sessionWrapper helpers.SessionWrapper) ErrorReturningHandlerFunc {
+func CreateMainGetHandler(templ *template.Template, dbMaster *sql.DB, dbSlave *sql.DB, sessionWrapper helpers.SessionWrapper) ErrorReturningHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		_, id, _ := sessionWrapper.IsAuthenticated(r)
-		statisticProvier := helpers.CreateUserStatisticProvider(db)
-		mostPopularCities, err := statisticProvier.GetMostPopularCities(5)
+		slave := r.URL.Query().Get("slave")
+
+		var statisticProvider *helpers.UserStatisticProvider
+		if slave == "" {
+			statisticProvider = helpers.CreateUserStatisticProvider(dbMaster)
+		} else {
+			statisticProvider = helpers.CreateUserStatisticProvider(dbSlave)
+		}
+
+		mostPopularCities, err := statisticProvider.GetMostPopularCities(5)
 		if err != nil {
 			return NewHTTPError(err, 500, "")
 		}
-		mostPopularFirstNames, err := statisticProvier.GetMostPopularFirstNames(5)
+		mostPopularFirstNames, err := statisticProvider.GetMostPopularFirstNames(5)
 		if err != nil {
 			return NewHTTPError(err, 500, "")
 		}
